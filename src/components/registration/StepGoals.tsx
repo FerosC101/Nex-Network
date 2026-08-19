@@ -28,6 +28,7 @@ export function StepGoals() {
       {field.value.includes('Other') && (
         <TextField
           label="Tell us more"
+          required
           error={errors.otherGoal?.message}
           {...register('otherGoal')}
         />

@@ -19,6 +19,15 @@ import { useEffect, useRef, useState } from 'react';
  * the 17 KB poster, which looks intentional rather than broken.
  */
 
+/**
+ * Phones get a 640px cut (~730 KB) instead of the 1280px master (~3.3 MB).
+ * The backdrop is heavily blurred and dimmed, so the smaller source is
+ * indistinguishable — and on mobile data the difference is the whole point.
+ */
+function videoSource(): string {
+  return window.innerWidth < 768 ? '/nex-rebrand-mobile.mp4#t=2' : '/nex-rebrand.mp4#t=2';
+}
+
 function wantsMotion(): boolean {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
 
@@ -39,9 +48,11 @@ export function VideoBackdrop() {
   const video = useRef<HTMLVideoElement>(null);
   const [play, setPlay] = useState(false);
   const [ready, setReady] = useState(false);
+  const [src, setSrc] = useState<string | null>(null);
 
   useEffect(() => {
     setPlay(wantsMotion());
+    setSrc(videoSource());
   }, []);
 
   useEffect(() => {
@@ -66,13 +77,13 @@ export function VideoBackdrop() {
         className="absolute inset-0 h-full w-full scale-105 object-cover blur-[3px]"
       />
 
-      {play && (
+      {play && src && (
         <video
           ref={video}
           className={`absolute inset-0 h-full w-full scale-105 object-cover blur-[3px] transition-opacity duration-1000 ${
             ready ? 'opacity-100' : 'opacity-0'
           }`}
-          src="/nex-rebrand.mp4#t=2"
+          src={src}
           preload="none"
           muted
           loop

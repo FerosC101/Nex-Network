@@ -58,6 +58,7 @@ export function StepBuilderProfile() {
           {(collaborationNeeds.field.value ?? []).includes('Other collaborators') && (
             <TextField
               label="Tell us more"
+              required
               error={errors.otherCollaborationNeed?.message}
               {...register('otherCollaborationNeed')}
             />

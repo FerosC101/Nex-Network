@@ -41,6 +41,24 @@ class SceneBoundary extends Component<{ fallback: ReactNode; children: ReactNode
   }
 }
 
+/**
+ * Skip the live scene on devices that will struggle with it.
+ *
+ * WebGL being *available* is not the same as it being a good idea: a budget
+ * phone can run the hero video and a render loop at once, just badly. These
+ * devices fall back to the pre-rendered still, which looks nearly identical
+ * at hero size and costs nothing to draw.
+ *
+ * Both signals are advisory — deviceMemory is Chromium-only and cores are a
+ * rough proxy — so the thresholds are deliberately conservative.
+ */
+function deviceCanHandle3D(): boolean {
+  const nav = navigator as Navigator & { deviceMemory?: number };
+  if (typeof nav.deviceMemory === 'number' && nav.deviceMemory <= 4) return false;
+  if (typeof nav.hardwareConcurrency === 'number' && nav.hardwareConcurrency <= 4) return false;
+  return true;
+}
+
 let webGLSupport: boolean | null = null;
 
 /**
@@ -80,7 +98,7 @@ export function Model3D({
   const [contextLost, setContextLost] = useState(false);
 
   useEffect(() => {
-    setCanRender3D(hasWebGL());
+    setCanRender3D(hasWebGL() && deviceCanHandle3D());
 
     const query = window.matchMedia('(prefers-reduced-motion: reduce)');
     setReducedMotion(query.matches);

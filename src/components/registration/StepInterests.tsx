@@ -27,6 +27,7 @@ export function StepInterests() {
       {field.value.includes('Other') && (
         <TextField
           label="Tell us more"
+          required
           placeholder="What else are you into?"
           error={errors.otherInterest?.message}
           {...register('otherInterest')}
