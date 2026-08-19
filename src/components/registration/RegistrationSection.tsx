@@ -12,6 +12,7 @@ import { StepGoals } from '@/components/registration/StepGoals';
 import { StepBuilderProfile } from '@/components/registration/StepBuilderProfile';
 import { StepConsent } from '@/components/registration/StepConsent';
 import { SuccessScreen } from '@/components/registration/SuccessScreen';
+import { BotTrap } from '@/components/registration/BotTrap';
 import { useRegistrationForm } from '@/hooks/useRegistrationForm';
 
 const STEP_COMPONENTS = [
@@ -38,6 +39,8 @@ export function RegistrationSection() {
     isSuccess,
     isDraftRestored,
     clearDraft,
+    honeypot,
+    setHoneypot,
   } = useRegistrationForm();
 
   const isLastStep = step === totalSteps - 1;
@@ -90,6 +93,8 @@ export function RegistrationSection() {
               }}
               noValidate
             >
+              <BotTrap value={honeypot} onChange={setHoneypot} />
+
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
                   key={step}

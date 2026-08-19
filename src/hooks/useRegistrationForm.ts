@@ -68,6 +68,9 @@ function withoutPersonalFields(values: RegistrationFormInput): Partial<Registrat
   return copy;
 }
 
+/** Below this, a submission is scripted rather than typed. */
+const MIN_HUMAN_SECONDS = 8;
+
 export function useRegistrationForm() {
   const form = useForm<RegistrationFormInput, unknown, RegistrationForm>({
     resolver: zodResolver(registrationSchema),
@@ -82,6 +85,9 @@ export function useRegistrationForm() {
   const [submittedEmail, setSubmittedEmail] = useState('');
   const [isDraftRestored, setIsDraftRestored] = useState(false);
   const submissionInFlight = useRef(false);
+  // Passive spam checks — see BotTrap.
+  const [honeypot, setHoneypot] = useState('');
+  const startedAt = useRef(Date.now());
 
   // 1. Load draft from localStorage on initial render
   useEffect(() => {
@@ -153,6 +159,15 @@ export function useRegistrationForm() {
   }, []);
 
   const submit = form.handleSubmit(async (values) => {
+    // Silently accept and drop: telling a bot why it failed just helps it
+    // adapt, and a real person can never reach this branch.
+    const tooFast = (Date.now() - startedAt.current) / 1000 < MIN_HUMAN_SECONDS;
+    if (honeypot.trim() || tooFast) {
+      setResult({ success: true });
+      setSubmittedEmail(values.email);
+      return;
+    }
+
     if (submissionInFlight.current) return;
     submissionInFlight.current = true;
     setIsSubmitting(true);
@@ -195,5 +210,7 @@ export function useRegistrationForm() {
     isSuccess: result?.success === true,
     isDraftRestored,
     clearDraft,
+    honeypot,
+    setHoneypot,
   };
 }
