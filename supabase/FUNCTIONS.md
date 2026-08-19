@@ -15,7 +15,7 @@ If the send fails, `invite_sent_at` stays null, the row keeps showing under
 
 ### 1. The Nex mailbox
 
-Create a shared Google account, e.g. `nexnetwork@gmail.com`. Worth doing
+Create a shared Google account, e.g. `nexnetwork.community@gmail.com`. Worth doing
 regardless of email automation: teammates can share it, it outlives any one
 person, and it keeps a personal address off the public site.
 
@@ -49,10 +49,10 @@ supabase link --project-ref kbtjvnytsmutwkrmycnw
 
 ```bash
 supabase secrets set \
-  SMTP_USER="nexnetwork@gmail.com" \
+  SMTP_USER="nexnetwork.community@gmail.com" \
   SMTP_PASSWORD="the 16-char app password" \
-  SENDER_EMAIL="nexnetwork@gmail.com" \
-  CONTACT_EMAIL="nexnetwork@gmail.com" \
+  SENDER_EMAIL="nexnetwork.community@gmail.com" \
+  CONTACT_EMAIL="nexnetwork.community@gmail.com" \
   NEX_INVITE_LINK="<the Messenger invite link — see team/approval-email.md>" \
   WEBHOOK_SECRET="$(openssl rand -hex 32)"
 ```
@@ -78,12 +78,12 @@ place.
 
 ### 6. Point the site at the new address
 
-Once `nexnetwork@gmail.com` exists, update the Vercel environment variables so
+Once `nexnetwork.community@gmail.com` exists, update the Vercel environment variables so
 the public site shows it instead of a personal address:
 
 ```
-VITE_CONTACT_EMAIL   nexnetwork@gmail.com
-VITE_SENDER_EMAIL    nexnetwork@gmail.com
+VITE_CONTACT_EMAIL   nexnetwork.community@gmail.com
+VITE_SENDER_EMAIL    nexnetwork.community@gmail.com
 ```
 
 Then redeploy — Vite bakes these in at build time.
