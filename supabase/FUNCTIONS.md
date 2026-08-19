@@ -57,8 +57,20 @@ supabase secrets set \
   WEBHOOK_SECRET="$(openssl rand -hex 32)"
 ```
 
-Note the generated `WEBHOOK_SECRET` — step 5 needs the same value. Values are
-hidden afterwards; if you lose it, set a new one and update the trigger.
+**Generate `WEBHOOK_SECRET` separately so you can see it**, rather than inline:
+
+```bash
+openssl rand -hex 32          # prints the value — copy it
+supabase secrets set WEBHOOK_SECRET="<paste it here>"
+```
+
+Using `WEBHOOK_SECRET="$(openssl rand -hex 32)"` sets a value that is never
+printed anywhere, and `supabase secrets list` shows only a SHA-256 digest, not
+the value — so it cannot be recovered. Step 5 needs the same string.
+
+If you have already lost it, nothing is broken: set a new one and use that in
+the trigger. The secret is only a shared string between the database and the
+function, so rotating it costs nothing as long as both sides match.
 
 ### 4. Deploy
 
