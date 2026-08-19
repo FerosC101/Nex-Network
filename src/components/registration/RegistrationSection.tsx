@@ -1,6 +1,7 @@
+import { useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { FormProvider } from 'react-hook-form';
-import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Loader2, RotateCcw } from 'lucide-react';
 import { Section } from '@/components/layout/Section';
 import { Button } from '@/components/ui/Button';
 import { ProgressBar } from '@/components/registration/ProgressBar';
@@ -35,10 +36,19 @@ export function RegistrationSection() {
     submitError,
     submittedEmail,
     isSuccess,
+    isDraftRestored,
+    clearDraft,
   } = useRegistrationForm();
 
   const isLastStep = step === totalSteps - 1;
   const CurrentStep = STEP_COMPONENTS[step];
+
+  const stepContainerRef = useRef<HTMLDivElement>(null);
+
+  // Accessibility (a11y): Shift DOM focus to top of step card on step transition
+  useEffect(() => {
+    stepContainerRef.current?.focus();
+  }, [step]);
 
   return (
     <Section id="register" className="bg-base/40">
@@ -55,6 +65,20 @@ export function RegistrationSection() {
           <FormProvider {...form}>
             <ProgressBar step={step} totalSteps={totalSteps} labels={stepLabels} />
 
+            {isDraftRestored && (
+              <div className="mb-6 flex items-center justify-between rounded-xl border border-brand/30 bg-brand/10 px-4 py-2.5 text-xs text-brand">
+                <span>Draft restored from your last session.</span>
+                <button
+                  type="button"
+                  onClick={clearDraft}
+                  className="inline-flex items-center gap-1 font-medium hover:underline"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  Start fresh
+                </button>
+              </div>
+            )}
+
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -69,6 +93,11 @@ export function RegistrationSection() {
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
                   key={step}
+                  ref={stepContainerRef}
+                  tabIndex={-1}
+                  aria-live="polite"
+                  aria-label={`Step ${step + 1} of ${totalSteps}: ${stepLabels[step]}`}
+                  className="outline-none"
                   initial={{ opacity: 0, x: 16 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -16 }}

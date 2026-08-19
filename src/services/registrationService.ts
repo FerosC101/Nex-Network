@@ -29,9 +29,6 @@ function toRow(payload: RegistrationPayload): MembersInsert {
     other_collaboration_need: payload.otherCollaborationNeed || null,
     agreed_to_terms: payload.agreedToTerms,
     consented_at: new Date().toISOString(),
-    // Registrations always enter the review queue. The RLS policy in
-    // supabase/schema.sql enforces this too, so a tampered client can't
-    // self-approve its way to an invite.
     status: 'pending',
     reviewed_at: null,
     reviewed_by: null,
@@ -39,6 +36,27 @@ function toRow(payload: RegistrationPayload): MembersInsert {
     invite_sent_at: null,
     auth_user_id: null,
   };
+}
+
+/**
+ * Checks early if an email address has already been registered in the database.
+ */
+export async function checkEmailRegistered(email: string): Promise<boolean> {
+  const supabase = getSupabaseClient();
+  if (!supabase || !email.trim()) return false;
+
+  try {
+    const { data, error } = await supabase
+      .from('members')
+      .select('id')
+      .eq('email', email.trim().toLowerCase())
+      .maybeSingle();
+
+    if (error) return false;
+    return Boolean(data);
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -57,12 +75,6 @@ export async function submitRegistration(payload: RegistrationPayload): Promise<
     };
   }
 
-  // Deliberately no .select() chained onto the insert. Doing so sets
-  // PostgREST's `Prefer: return=representation`, which reads the new row back
-  // — and there is no SELECT policy for the public key, so that read is denied
-  // and the whole insert rolls back, surfacing as a confusing
-  // "42501: new row violates row-level security policy". Registration does not
-  // need the generated id, so the tighter policy wins.
   const { error } = await supabase.from('members').insert(toRow(payload));
 
   if (error) {
