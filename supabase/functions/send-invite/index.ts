@@ -54,7 +54,7 @@ const json = (body: unknown, status = 200) =>
 function inviteEmail(name: string, link: string, contact: string, site: string) {
   const safeName = name.replace(/[<>&]/g, '');
   return {
-    subject: "You're in — welcome to Nex ⚡",
+    subject: 'Your Nex Network invite — welcome aboard',
     text:
       `Hi ${safeName},\n\n` +
       `You're in. We checked your details and you're now part of Nex Network — a community of student builders across Batangas.\n\n` +
@@ -193,6 +193,12 @@ Deno.serve(async (req) => {
         subject: mail.subject,
         content: mail.text,
         html: mail.html,
+        // Signals to Gmail that this is legitimate mail with a real opt-out,
+        // which meaningfully affects whether it lands in spam.
+        headers: {
+          'List-Unsubscribe': `<mailto:${contact}?subject=unsubscribe>`,
+          'X-Entity-Ref-ID': row.id,
+        },
       });
       await client.close();
     } catch (err) {
