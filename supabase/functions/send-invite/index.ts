@@ -9,6 +9,8 @@
 //   NEX_INVITE_LINK  the Messenger group chat link — deliberately a secret,
 //                    never committed and never shipped to the browser
 //   SENDER_EMAIL     verified "from" address, e.g. nex@yourdomain.com
+//   SITE_URL         optional, origin serving the email images
+//                    (default https://nex-network.vercel.app)
 //   WEBHOOK_SECRET   shared secret the database trigger sends in a header
 //
 // SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are injected automatically.
@@ -35,7 +37,7 @@ const json = (body: unknown, status = 200) =>
     headers: { 'Content-Type': 'application/json' },
   });
 
-function inviteEmail(name: string, link: string, contact: string) {
+function inviteEmail(name: string, link: string, contact: string, site: string) {
   const safeName = name.replace(/[<>&]/g, '');
   return {
     subject: "You're in — welcome to Nex ⚡",
@@ -50,9 +52,14 @@ function inviteEmail(name: string, link: string, contact: string) {
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f6;padding:32px 16px;">
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:16px;overflow:hidden;">
-        <tr><td style="background:#1b1a1f;padding:28px 32px;">
-          <p style="margin:0;color:#5cd6d7;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;">Nex Network</p>
-          <h1 style="margin:8px 0 0;color:#ffffff;font-size:26px;line-height:1.2;">You're in. ⚡</h1>
+        <!-- Banner. Many clients block images by default, so the dark
+             background and the heading below carry the message on their own. -->
+        <tr><td style="background:#1b1a1f;line-height:0;">
+          <img src="${site}/email-banner.jpg" width="520" alt="Nex is now"
+               style="display:block;width:100%;max-width:520px;height:auto;border:0;color:#ffffff;font-size:20px;font-weight:600;" />
+        </td></tr>
+        <tr><td style="background:#1b1a1f;padding:24px 32px 28px;">
+          <h1 style="margin:0;color:#ffffff;font-size:26px;line-height:1.2;">You're in. ⚡</h1>
         </td></tr>
         <tr><td style="padding:28px 32px;">
           <p style="margin:0 0 16px;color:#2b2a33;font-size:16px;line-height:1.6;">Hi ${safeName},</p>
@@ -73,7 +80,23 @@ function inviteEmail(name: string, link: string, contact: string) {
           </p>
         </td></tr>
         <tr><td style="padding:20px 32px 28px;border-top:1px solid #eceaf0;">
-          <p style="margin:0;color:#8b8794;font-size:13px;line-height:1.6;">
+          <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+            <!-- The mark is white-on-top, cyan-below, so it disappears against
+                 the white card. A dark chip keeps both halves visible. -->
+            <td style="padding-right:10px;" valign="middle">
+              <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+                <td align="center" style="background:#1b1a1f;border-radius:8px;padding:6px;">
+                  <img src="${site}/email-logo.png" width="22" height="22" alt=""
+                       style="display:block;border:0;" />
+                </td>
+              </tr></table>
+            </td>
+            <td valign="middle">
+              <p style="margin:0;color:#2b2a33;font-size:13px;font-weight:600;">Nex Network</p>
+              <p style="margin:0;color:#8b8794;font-size:12px;">Learn. Build. Collaborate. Compete. Connect.</p>
+            </td>
+          </tr></table>
+          <p style="margin:14px 0 0;color:#8b8794;font-size:13px;line-height:1.6;">
             No experience required. Just start.<br>
             Questions? Reply to this email or reach us at
             <a href="mailto:${contact}" style="color:#2a9d9e;">${contact}</a>.
@@ -117,8 +140,11 @@ Deno.serve(async (req) => {
     return json({ error: 'function secrets not configured' }, 500);
   }
 
+  // Absolute URLs are required in email; keep the origin configurable so a
+  // custom domain later doesn't silently break every image.
+  const site = (Deno.env.get('SITE_URL') ?? 'https://nex-network.vercel.app').replace(/\/$/, '');
   const name = row.preferred_name?.trim() || row.first_name;
-  const mail = inviteEmail(name, link, contact);
+  const mail = inviteEmail(name, link, contact, site);
 
   const send = await fetch('https://api.resend.com/emails', {
     method: 'POST',
