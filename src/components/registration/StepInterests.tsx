@@ -28,6 +28,7 @@ export function StepInterests() {
         <TextField
           label="Tell us more"
           required
+          maxLength={100}
           placeholder="What else are you into?"
           error={errors.otherInterest?.message}
           {...register('otherInterest')}

@@ -1,9 +1,16 @@
 import { z } from 'zod';
 import { YEAR_LEVELS, INTERESTS, COMMUNITY_GOALS, BUILDING_STATUSES, COLLABORATION_NEEDS } from '@/types/registration';
 
-// A pragmatic phone check: digits, spaces, +, -, () — 7 to 15 digits total.
+// A pragmatic phone check: digits, spaces, +, -, () — 7 to 20 digits total.
 // Accepts PH mobile formats (09xxxxxxxxx, +639xxxxxxxxx) and general use.
 const PHONE_REGEX = /^[+]?[\d\s()-]{7,20}$/;
+
+/** Helper to detect excessive consecutive repeated characters (e.g. "aaaaa") */
+export function hasConsecutiveSpam(val: string, maxConsecutive = 4): boolean {
+  if (!val) return false;
+  const regex = new RegExp(`(.)\\1{${maxConsecutive - 1},}`, 'i');
+  return regex.test(val);
+}
 
 /**
  * Consumer mail domains people mistype. zod's email check already rejects
@@ -46,13 +53,34 @@ export function suggestEmailDomain(email: string): string | null {
 }
 
 export const basicInfoSchema = z.object({
-  firstName: z.string().trim().min(1, 'First name is required.').max(80),
-  lastName: z.string().trim().min(1, 'Last name is required.').max(80),
-  preferredName: z.string().trim().max(80).optional().default(''),
+  firstName: z
+    .string()
+    .trim()
+    .min(1, 'First name is required.')
+    .max(50, 'First name must be 50 characters or less.')
+    .refine((v) => /^[a-zA-Z\s'-]+$/.test(v), 'First name can only contain letters.')
+    .refine((v) => !hasConsecutiveSpam(v, 4), 'First name contains too many repeated characters.'),
+  lastName: z
+    .string()
+    .trim()
+    .min(1, 'Last name is required.')
+    .max(50, 'Last name must be 50 characters or less.')
+    .refine((v) => /^[a-zA-Z\s'-]+$/.test(v), 'Last name can only contain letters.')
+    .refine((v) => !hasConsecutiveSpam(v, 4), 'Last name contains too many repeated characters.'),
+  preferredName: z
+    .string()
+    .trim()
+    .max(50, 'Preferred name must be 50 characters or less.')
+    .refine((v) => !v || /^[a-zA-Z\s'-]+$/.test(v), 'Preferred name can only contain letters.')
+    .refine((v) => !v || !hasConsecutiveSpam(v, 4), 'Preferred name contains too many repeated characters.')
+    .optional()
+    .default(''),
   email: z
     .email('Enter a valid email address.')
     .trim()
     .toLowerCase()
+    .max(100, 'Email must be 100 characters or less.')
+    .refine((v) => !hasConsecutiveSpam(v.split('@')[0] || '', 4), 'Email prefix contains too many repeated characters.')
     .superRefine((value, ctx) => {
       const suggestion = suggestEmailDomain(value);
       if (suggestion) {
@@ -66,50 +94,87 @@ export const basicInfoSchema = z.object({
     .string()
     .trim()
     .min(1, 'Mobile number is required.')
+    .max(20, 'Mobile number is too long.')
     .regex(PHONE_REGEX, 'Enter a valid mobile number.')
-    .refine((v) => v.replace(/\D/g, '').length >= 10, 'Mobile number looks too short.'),
+    .refine((v) => v.replace(/\D/g, '').length >= 10, 'Mobile number looks too short.')
+    .refine((v) => !hasConsecutiveSpam(v.replace(/\D/g, ''), 7), 'Mobile number contains invalid repeated digits.'),
   age: z.coerce
     .number({ error: 'Age is required.' })
     .int('Age must be a whole number.')
     .min(13, 'You must be at least 13.')
-    .max(99, 'Enter a valid age.'),
-  province: z.string().trim().min(1, 'Province is required.').max(120),
-  city: z.string().trim().min(1, 'City / Municipality is required.').max(120),
+    .max(99, 'Enter a valid age (13-99).'),
+  province: z
+    .string()
+    .trim()
+    .min(1, 'Province is required.')
+    .max(100, 'Province name is too long.')
+    .refine((v) => !hasConsecutiveSpam(v, 4), 'Province contains invalid repeated characters.'),
+  city: z
+    .string()
+    .trim()
+    .min(1, 'City / Municipality is required.')
+    .max(100, 'City / Municipality name is too long.')
+    .refine((v) => !hasConsecutiveSpam(v, 4), 'City contains invalid repeated characters.'),
 });
 export type BasicInfoForm = z.infer<typeof basicInfoSchema>;
 
 export const studentInfoSchema = z.object({
-  school: z.string().trim().min(1, 'School / University is required.').max(160),
-  courseProgram: z.string().trim().min(1, 'Course / Program is required.').max(160),
+  school: z
+    .string()
+    .trim()
+    .min(1, 'School / University is required.')
+    .max(120, 'School name must be 120 characters or less.')
+    .refine((v) => !hasConsecutiveSpam(v, 4), 'School name contains too many repeated characters.'),
+  courseProgram: z
+    .string()
+    .trim()
+    .min(1, 'Course / Program is required.')
+    .max(100, 'Course / Program must be 100 characters or less.')
+    .refine((v) => !/^\d+$/.test(v), 'Course / Program cannot be numbers only.')
+    .refine((v) => !hasConsecutiveSpam(v, 4), 'Course / Program contains too many repeated characters.'),
   yearLevel: z.enum(YEAR_LEVELS, { error: 'Select your year level.' }),
 });
 export type StudentInfoForm = z.infer<typeof studentInfoSchema>;
 
 export const interestsSchema = z.object({
   interests: z.array(z.enum(INTERESTS)).min(1, 'Pick at least one interest.'),
-  otherInterest: z.string().trim().max(200).optional().default(''),
+  otherInterest: z
+    .string()
+    .trim()
+    .max(100, 'Must be 100 characters or less.')
+    .refine((v) => !v || !hasConsecutiveSpam(v, 4), 'Contains too many repeated characters.')
+    .optional()
+    .default(''),
 });
 export type InterestsForm = z.infer<typeof interestsSchema>;
 
 export const goalsSchema = z.object({
   goals: z.array(z.enum(COMMUNITY_GOALS)).min(1, "Pick at least one — what are you hoping to find?"),
-  otherGoal: z.string().trim().max(200).optional().default(''),
-  additionalNotes: z.string().trim().max(1000).optional().default(''),
+  otherGoal: z
+    .string()
+    .trim()
+    .max(100, 'Must be 100 characters or less.')
+    .refine((v) => !v || !hasConsecutiveSpam(v, 4), 'Contains too many repeated characters.')
+    .optional()
+    .default(''),
+  additionalNotes: z
+    .string()
+    .trim()
+    .max(500, 'Notes must be 500 characters or less.')
+    .refine((v) => !v || !hasConsecutiveSpam(v, 5), 'Notes contain too many repeated characters.')
+    .optional()
+    .default(''),
 });
 export type GoalsForm = z.infer<typeof goalsSchema>;
 
 /**
  * Cross-field rules, kept in one place because they must be applied to the
  * COMBINED schema, not the per-step ones.
- *
- * The combined schema is built by spreading each step's `.shape`, and a shape
- * carries only the fields — any `.superRefine` on the step schema is silently
- * dropped. Since the form's resolver validates against the combined schema,
- * rules defined only on a step schema never run at all.
  */
 type CrossFieldData = {
   buildingStatus?: string | null;
   projectName?: string;
+  projectDescription?: string;
   interests?: readonly string[];
   otherInterest?: string;
   goals?: readonly string[];
@@ -124,7 +189,6 @@ function builderRules(data: CrossFieldData, ctx: z.RefinementCtx) {
   if (needsProjectDetails && !data.projectName?.trim()) {
     ctx.addIssue({ code: 'custom', path: ['projectName'], message: 'Give your project or idea a name.' });
   }
-  // Picking "Other" and leaving the box empty tells us nothing — ask for it.
   if (data.collaborationNeeds?.includes('Other collaborators') && !data.otherCollaborationNeed?.trim()) {
     ctx.addIssue({
       code: 'custom',
@@ -152,14 +216,31 @@ function crossFieldRules(data: CrossFieldData, ctx: z.RefinementCtx) {
   }
 }
 
-const builderProfileObject = z
-  .object({
-    buildingStatus: z.enum(BUILDING_STATUSES).nullable().default(null),
-    projectName: z.string().trim().max(160).optional().default(''),
-    projectDescription: z.string().trim().max(1000).optional().default(''),
-    collaborationNeeds: z.array(z.enum(COLLABORATION_NEEDS)).optional().default([]),
-    otherCollaborationNeed: z.string().trim().max(200).optional().default(''),
-  });
+const builderProfileObject = z.object({
+  buildingStatus: z.enum(BUILDING_STATUSES).nullable().default(null),
+  projectName: z
+    .string()
+    .trim()
+    .max(100, 'Project name must be 100 characters or less.')
+    .refine((v) => !v || !hasConsecutiveSpam(v, 5), 'Project name contains too many repeated characters.')
+    .optional()
+    .default(''),
+  projectDescription: z
+    .string()
+    .trim()
+    .max(500, 'Description must be 500 characters or less.')
+    .refine((v) => !v || !hasConsecutiveSpam(v, 5), 'Description contains too many repeated characters.')
+    .optional()
+    .default(''),
+  collaborationNeeds: z.array(z.enum(COLLABORATION_NEEDS)).optional().default([]),
+  otherCollaborationNeed: z
+    .string()
+    .trim()
+    .max(100, 'Must be 100 characters or less.')
+    .refine((v) => !v || !hasConsecutiveSpam(v, 4), 'Contains too many repeated characters.')
+    .optional()
+    .default(''),
+});
 
 export const builderProfileSchema = builderProfileObject.superRefine(builderRules);
 export type BuilderProfileForm = z.infer<typeof builderProfileSchema>;
