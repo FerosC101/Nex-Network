@@ -57,7 +57,13 @@ export async function submitRegistration(payload: RegistrationPayload): Promise<
     };
   }
 
-  const { data, error } = await supabase.from('members').insert(toRow(payload)).select('id').single();
+  // Deliberately no .select() chained onto the insert. Doing so sets
+  // PostgREST's `Prefer: return=representation`, which reads the new row back
+  // — and there is no SELECT policy for the public key, so that read is denied
+  // and the whole insert rolls back, surfacing as a confusing
+  // "42501: new row violates row-level security policy". Registration does not
+  // need the generated id, so the tighter policy wins.
+  const { error } = await supabase.from('members').insert(toRow(payload));
 
   if (error) {
     if (error.code === UNIQUE_VIOLATION) {
@@ -74,5 +80,5 @@ export async function submitRegistration(payload: RegistrationPayload): Promise<
     };
   }
 
-  return { success: true, memberId: data?.id };
+  return { success: true };
 }

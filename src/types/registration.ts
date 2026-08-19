@@ -134,7 +134,6 @@ export interface RegistrationPayload
 
 export interface RegistrationResult {
   success: boolean;
-  memberId?: string;
   error?: string;
   /** True when the email already exists — a friendlier duplicate-submit message. */
   duplicate?: boolean;

@@ -116,10 +116,14 @@ create index if not exists members_status_created_idx on public.members (status,
 alter table public.members enable row level security;
 
 drop policy if exists "Public can register" on public.members;
+-- `to public` rather than `to anon`: Supabase's newer publishable keys
+-- (sb_publishable_…) do not reliably resolve to the anon role, and a policy
+-- scoped to anon silently rejects every registration with 42501. The
+-- `with check` clause below is what actually constrains the insert.
 create policy "Public can register"
   on public.members
   for insert
-  to anon
+  to public
   with check (
     agreed_to_terms = true
     -- Applicants cannot self-approve: registrations must enter the queue as pending.
