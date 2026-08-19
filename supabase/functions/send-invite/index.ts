@@ -4,18 +4,32 @@
 // Runs on Deno, not in the app bundle. Deploy with:
 //   supabase functions deploy send-invite --no-verify-jwt
 //
-// Secrets it needs (supabase secrets set ...):
-//   RESEND_API_KEY   Resend API key
+// Two ways to send, picked by which secret is present:
+//
+//   Gmail SMTP (no domain required — recommended to start)
+//     SMTP_USER        the Nex mailbox, e.g. nexnetwork@gmail.com
+//     SMTP_PASSWORD    a Google App Password (needs 2FA on the account).
+//                      NOT the account password.
+//
+//   Resend (needs a domain you own; better once Nex has one)
+//     RESEND_API_KEY   Resend API key
+//
+// Gmail wins on deliverability without a domain because Google is genuinely
+// the sender, so SPF/DKIM/DMARC all align. Sending as @gmail.com through a
+// third-party provider does not align, and tends to land in spam.
+//
+// Always required:
 //   NEX_INVITE_LINK  the Messenger group chat link — deliberately a secret,
 //                    never committed and never shipped to the browser
-//   SENDER_EMAIL     verified "from" address, e.g. nex@yourdomain.com
+//   SENDER_EMAIL     the "from" address (match SMTP_USER when using Gmail)
+//   WEBHOOK_SECRET   shared secret the database trigger sends in a header
 //   SITE_URL         optional, origin serving the email images
 //                    (default https://nex-network.vercel.app)
-//   WEBHOOK_SECRET   shared secret the database trigger sends in a header
 //
 // SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are injected automatically.
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { SMTPClient } from 'https://deno.land/x/denomailer@1.6.0/mod.ts';
 
 interface WebhookPayload {
   type: 'INSERT' | 'UPDATE' | 'DELETE';
@@ -133,10 +147,13 @@ Deno.serve(async (req) => {
   if (row.invite_sent_at) return json({ skipped: 'invite already sent' });
 
   const resendKey = Deno.env.get('RESEND_API_KEY');
+  const smtpUser = Deno.env.get('SMTP_USER');
+  const smtpPassword = Deno.env.get('SMTP_PASSWORD');
   const link = Deno.env.get('NEX_INVITE_LINK');
-  const sender = Deno.env.get('SENDER_EMAIL');
+  const sender = Deno.env.get('SENDER_EMAIL') ?? smtpUser;
   const contact = Deno.env.get('CONTACT_EMAIL') ?? sender ?? '';
-  if (!resendKey || !link || !sender) {
+  const canSend = (smtpUser && smtpPassword) || resendKey;
+  if (!canSend || !link || !sender) {
     return json({ error: 'function secrets not configured' }, 500);
   }
 
@@ -146,28 +163,55 @@ Deno.serve(async (req) => {
   const name = row.preferred_name?.trim() || row.first_name;
   const mail = inviteEmail(name, link, contact, site);
 
-  const send = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${resendKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: `Nex Network <${sender}>`,
-      to: [row.email],
-      reply_to: contact || undefined,
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
-    }),
-  });
+  // On any failure, leave invite_sent_at null so the row stays in "Awaiting
+  // invite" in the admin UI and can be sent by hand. Failing loudly beats a
+  // silent drop — nobody should fall through the cracks unnoticed.
+  if (smtpUser && smtpPassword) {
+    const client = new SMTPClient({
+      connection: {
+        hostname: 'smtp.gmail.com',
+        port: 465,
+        tls: true,
+        auth: { username: smtpUser, password: smtpPassword },
+      },
+    });
+    try {
+      await client.send({
+        from: `Nex Network <${sender}>`,
+        to: row.email,
+        replyTo: contact || undefined,
+        subject: mail.subject,
+        content: mail.text,
+        html: mail.html,
+      });
+      await client.close();
+    } catch (err) {
+      console.error('smtp failed', err);
+      try { await client.close(); } catch { /* already closed */ }
+      return json({ error: 'send failed', detail: String(err) }, 502);
+    }
+  } else {
+    const send = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${resendKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: `Nex Network <${sender}>`,
+        to: [row.email],
+        reply_to: contact || undefined,
+        subject: mail.subject,
+        html: mail.html,
+        text: mail.text,
+      }),
+    });
 
-  if (!send.ok) {
-    // Leave invite_sent_at null so the row stays in "Awaiting invite" in the
-    // admin UI and can be sent by hand. Failing loudly beats a silent drop.
-    const detail = await send.text();
-    console.error('resend failed', send.status, detail);
-    return json({ error: 'send failed', status: send.status, detail }, 502);
+    if (!send.ok) {
+      const detail = await send.text();
+      console.error('resend failed', send.status, detail);
+      return json({ error: 'send failed', status: send.status, detail }, 502);
+    }
   }
 
   const admin = createClient(

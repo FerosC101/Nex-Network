@@ -13,13 +13,31 @@ If the send fails, `invite_sent_at` stays null, the row keeps showing under
 
 ## Setup
 
-**1. Resend account** — https://resend.com (free tier: 3,000 emails/month).
-Create an API key. For the `from` address you need either:
-- a domain you own, verified in Resend (best — `nex@yourdomain.ph`), or
-- Resend's `onboarding@resend.dev` for testing, which **only delivers to your
-  own account email**, so it is not usable for real students.
+### 1. The Nex mailbox
 
-**2. Install and link the Supabase CLI**
+Create a shared Google account, e.g. `nexnetwork@gmail.com`. Worth doing
+regardless of email automation: teammates can share it, it outlives any one
+person, and it keeps a personal address off the public site.
+
+Then, on that account:
+1. Turn on **2-Step Verification** (App Passwords are unavailable without it)
+2. Go to https://myaccount.google.com/apppasswords
+3. Create an App Password named "Nex invites" and copy the 16 characters
+
+That App Password is what the function uses — never the account password, and
+it can be revoked on its own if it leaks.
+
+**Why Gmail rather than Resend or Brevo:** sending to arbitrary students needs
+a verified sender. Resend requires a domain you own. Brevo and SendGrid will
+verify a single Gmail address, but mail sent as `@gmail.com` from their servers
+fails DMARC alignment and often lands in spam. Sending through Gmail itself
+means Google really is the sender, so SPF/DKIM/DMARC all align. The free limit
+is ~500 messages a day, far beyond Nex's volume.
+
+Move to Resend once Nex owns a domain — set `RESEND_API_KEY` instead of the
+SMTP secrets and the function switches automatically.
+
+### 2. Install and link the Supabase CLI
 
 ```bash
 brew install supabase/tap/supabase
@@ -27,36 +45,48 @@ supabase login
 supabase link --project-ref kbtjvnytsmutwkrmycnw
 ```
 
-**3. Set the function secrets**
+### 3. Set the function secrets
 
 ```bash
 supabase secrets set \
-  RESEND_API_KEY="re_xxxxxxxx" \
+  SMTP_USER="nexnetwork@gmail.com" \
+  SMTP_PASSWORD="the 16-char app password" \
+  SENDER_EMAIL="nexnetwork@gmail.com" \
+  CONTACT_EMAIL="nexnetwork@gmail.com" \
   NEX_INVITE_LINK="<the Messenger invite link — see team/approval-email.md>" \
-  SENDER_EMAIL="nex@yourdomain.ph" \
-  CONTACT_EMAIL="vincevillar02@gmail.com" \
   WEBHOOK_SECRET="$(openssl rand -hex 32)"
 ```
 
-Note the generated `WEBHOOK_SECRET` — step 5 needs the same value. Read it back
-later with `supabase secrets list` (values are hidden; if you lose it, just set
-a new one and update the trigger).
+Note the generated `WEBHOOK_SECRET` — step 5 needs the same value. Values are
+hidden afterwards; if you lose it, set a new one and update the trigger.
 
-**4. Deploy**
+### 4. Deploy
 
 ```bash
 supabase functions deploy send-invite --no-verify-jwt
 ```
 
-`--no-verify-jwt` is required: the caller is the database, not a signed-in user.
-The function is protected by `WEBHOOK_SECRET` instead — it rejects any request
-without the matching header, so it is not an open endpoint.
+`--no-verify-jwt` is required: the caller is the database, not a signed-in
+user. The function is protected by `WEBHOOK_SECRET` instead — it rejects any
+request without the matching header, so it is not an open endpoint.
 
-**5. Create the trigger**
+### 5. Create the trigger
 
 Open `auto-invite.sql`, replace `<PROJECT_REF>` and `<WEBHOOK_SECRET>` with the
 real values, and run it in the SQL editor. Do not commit it with the secret in
 place.
+
+### 6. Point the site at the new address
+
+Once `nexnetwork@gmail.com` exists, update the Vercel environment variables so
+the public site shows it instead of a personal address:
+
+```
+VITE_CONTACT_EMAIL   nexnetwork@gmail.com
+VITE_SENDER_EMAIL    nexnetwork@gmail.com
+```
+
+Then redeploy — Vite bakes these in at build time.
 
 ## Testing
 
