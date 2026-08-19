@@ -39,3 +39,7 @@ brand/NEX VIDEO REBRAND.mp4
 # Team-only material: approval email templates containing the private
 # Messenger invite link. The repo is public — this must never be committed.
 team/
+
+# Supabase Edge Function secrets (Resend key, invite link, webhook secret)
+supabase/.env
+supabase/functions/**/.env
