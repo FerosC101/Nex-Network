@@ -157,6 +157,16 @@ Deno.serve(async (req) => {
     return json({ error: 'function secrets not configured' }, 500);
   }
 
+  // Refuse to send rather than deliver a dead invite. A placeholder left in
+  // NEX_INVITE_LINK still "works" everywhere else — the email sends, the row
+  // gets stamped — but the button does nothing and the fallback text vanishes,
+  // because angle brackets are parsed as an HTML tag. Failing here keeps the
+  // row in "Awaiting invite" instead of silently stranding someone.
+  if (!/^https:\/\//.test(link) || /[<>]/.test(link)) {
+    console.error('NEX_INVITE_LINK is not a usable https URL:', link);
+    return json({ error: 'invite link is not a valid https URL' }, 500);
+  }
+
   // Absolute URLs are required in email; keep the origin configurable so a
   // custom domain later doesn't silently break every image.
   const site = (Deno.env.get('SITE_URL') ?? 'https://nex-network.vercel.app').replace(/\/$/, '');
