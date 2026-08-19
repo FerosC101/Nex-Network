@@ -35,3 +35,7 @@ dist-ssr
 brand/*.blend
 brand/*.blend[0-9]*
 brand/NEX VIDEO REBRAND.mp4
+
+# Team-only material: approval email templates containing the private
+# Messenger invite link. The repo is public — this must never be committed.
+team/
