@@ -39,13 +39,17 @@ export function StepStudentInfo() {
         <p className="mt-1.5 text-sm text-ink-3">Helps us connect you with people nearby and in your field.</p>
       </div>
 
+      {/* No strictSelection: the list holds 71 universities, and Batangas has
+          far more schools — plus the form accepts Grade 11-12, whose senior
+          highs are not universities at all. Forcing a list match silently
+          erased what students typed and locked them out of the form. The
+          list is a shortcut, not an allow-list. */}
       <ComboboxField
         label="School / University"
         required
-        strictSelection
         showCount
         maxLength={120}
-        placeholder="Select or search university…"
+        placeholder="Search, or type your school"
         options={PH_UNIVERSITIES}
         value={typeof selectedSchool === 'string' ? selectedSchool : ''}
         onChange={(val) => setValue('school', val, { shouldValidate: true })}

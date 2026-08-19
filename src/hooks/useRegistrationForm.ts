@@ -2,11 +2,24 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useForm, type Path } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { registrationSchema, type RegistrationForm, type RegistrationFormInput } from '@/schemas/registrationSchema';
-import { submitRegistration, checkEmailRegistered } from '@/services/registrationService';
+import { submitRegistration } from '@/services/registrationService';
 import type { RegistrationResult } from '@/types/registration';
 
 export const STEPS = ['Basic info', 'Student info', 'Interests', 'Goals', 'Building?', 'Consent'] as const;
 const DRAFT_STORAGE_KEY = 'nex_registration_draft_v1';
+/**
+ * Drafts expire, and hold no contact details.
+ *
+ * Students often register from a school lab or an internet cafe. Persisting a
+ * name, email, phone and age in localStorage meant the next person on that
+ * machine saw them prefilled — one student's contact details handed to a
+ * stranger. The draft now keeps only the slow-to-retype parts (interests,
+ * goals, project notes) and forgets them after a day.
+ */
+const DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
+const PERSONAL_FIELDS = [
+  'firstName', 'lastName', 'preferredName', 'email', 'mobileNumber', 'age',
+] as const;
 
 const STEP_FIELDS: Path<RegistrationFormInput>[][] = [
   ['firstName', 'lastName', 'preferredName', 'email', 'mobileNumber', 'age', 'province', 'city'],
@@ -44,7 +57,15 @@ const DEFAULT_VALUES: RegistrationFormInput = {
 
 interface StoredDraft {
   step: number;
-  values: RegistrationFormInput;
+  savedAt: number;
+  values: Partial<RegistrationFormInput>;
+}
+
+/** Strip anything that identifies or contacts the person. */
+function withoutPersonalFields(values: RegistrationFormInput): Partial<RegistrationFormInput> {
+  const copy: Partial<RegistrationFormInput> = { ...values };
+  for (const field of PERSONAL_FIELDS) delete copy[field];
+  return copy;
 }
 
 export function useRegistrationForm() {
@@ -68,12 +89,18 @@ export function useRegistrationForm() {
       const savedRaw = localStorage.getItem(DRAFT_STORAGE_KEY);
       if (savedRaw) {
         const parsed: StoredDraft = JSON.parse(savedRaw);
-        if (parsed && typeof parsed === 'object' && parsed.values) {
-          form.reset(parsed.values);
+        const fresh =
+          typeof parsed?.savedAt === 'number' && Date.now() - parsed.savedAt < DRAFT_TTL_MS;
+        if (parsed && typeof parsed === 'object' && parsed.values && fresh) {
+          // Merge over the defaults: the stored draft intentionally has no
+          // personal fields, so a plain reset would leave them undefined.
+          form.reset({ ...DEFAULT_VALUES, ...parsed.values });
           if (typeof parsed.step === 'number' && parsed.step >= 0 && parsed.step < STEPS.length) {
             setStep(parsed.step);
           }
           setIsDraftRestored(true);
+        } else {
+          localStorage.removeItem(DRAFT_STORAGE_KEY);
         }
       }
     } catch {
@@ -90,7 +117,8 @@ export function useRegistrationForm() {
       try {
         const draft: StoredDraft = {
           step,
-          values: watchValues,
+          savedAt: Date.now(),
+          values: withoutPersonalFields(watchValues),
         };
         localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
       } catch {
@@ -116,21 +144,6 @@ export function useRegistrationForm() {
     const fields = STEP_FIELDS[step];
     const valid = await form.trigger(fields, { shouldFocus: true });
     if (!valid) return;
-
-    // Early Email Duplicate check on Step 1
-    if (step === 0) {
-      const emailValue = form.getValues('email');
-      if (emailValue) {
-        const isDuplicate = await checkEmailRegistered(emailValue);
-        if (isDuplicate) {
-          form.setError('email', {
-            type: 'manual',
-            message: "You've already registered with this email — we'll be in touch once reviewed.",
-          });
-          return;
-        }
-      }
-    }
 
     setStep((s) => Math.min(s + 1, STEPS.length - 1));
   }, [form, step]);

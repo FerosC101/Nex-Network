@@ -39,24 +39,19 @@ function toRow(payload: RegistrationPayload): MembersInsert {
 }
 
 /**
- * Checks early if an email address has already been registered in the database.
+ * Whether this email has already registered.
+ *
+ * Deliberately NOT a SELECT against `members`. The public key has no read
+ * policy — by design, so nobody can enumerate members — so a lookup always
+ * comes back empty and would report "not a duplicate" for everyone, while
+ * costing a network round-trip on every step.
+ *
+ * The unique index on `email` is the real check, and it runs on insert. This
+ * exists so the caller has one honest place to ask, and returns null meaning
+ * "cannot know from the client".
  */
-export async function checkEmailRegistered(email: string): Promise<boolean> {
-  const supabase = getSupabaseClient();
-  if (!supabase || !email.trim()) return false;
-
-  try {
-    const { data, error } = await supabase
-      .from('members')
-      .select('id')
-      .eq('email', email.trim().toLowerCase())
-      .maybeSingle();
-
-    if (error) return false;
-    return Boolean(data);
-  } catch {
-    return false;
-  }
+export async function checkEmailRegistered(): Promise<null> {
+  return null;
 }
 
 /**
