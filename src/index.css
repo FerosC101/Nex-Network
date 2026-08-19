@@ -1,0 +1,138 @@
+@import "tailwindcss";
+
+/*
+ * Nex Network brand system.
+ *
+ * Palette and type are taken from the Nex brand sheet:
+ *   #1b1a1f  brand dark
+ *   #5cd6d7  brand light blue
+ *   Capitana (Thin / Regular / Semibold) for text
+ *
+ * Capitana and the "Dimensions 3000" display face are both commercial
+ * fonts with no web-licensed source here, so the closest free analogs
+ * stand in: Hanken Grotesk for text (near-identical geometric-humanist
+ * proportions, and it ships the 100/400/600 weights the sheet calls out)
+ * and Big Shoulders Display for the condensed uppercase labels. The real
+ * display face still shows up wherever it matters most — the logo and
+ * wordmark art are the actual brand renders.
+ */
+
+@theme {
+  --font-sans: "Hanken Grotesk", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-condensed: "Big Shoulders Display", "Hanken Grotesk", ui-sans-serif, sans-serif;
+
+  /* Brand */
+  --color-brand: #5cd6d7;
+  --color-brand-deep: #35b3b5;
+  --color-brand-soft: #8ee7e8;
+
+  /* Neutrals built around the brand dark #1b1a1f */
+  --color-void: #121116;
+  --color-base: #1b1a1f;
+  --color-surface: #232229;
+  --color-surface-2: #2b2a33;
+  --color-line: #34323d;
+  --color-line-soft: #2a2932;
+
+  /* Text */
+  --color-ink: #f5f4f8;
+  --color-ink-2: #bcb9c6;
+  --color-ink-3: #8b8794;
+  --color-ink-4: #5f5c68;
+
+  --animate-drift: drift 14s ease-in-out infinite;
+  --animate-drift-slow: drift 20s ease-in-out infinite;
+  --animate-breathe: breathe 6s ease-in-out infinite;
+
+  @keyframes drift {
+    0%, 100% { transform: translate3d(0, 0, 0); }
+    50% { transform: translate3d(14px, -22px, 0); }
+  }
+  @keyframes breathe {
+    0%, 100% { opacity: 0.45; }
+    50% { opacity: 0.9; }
+  }
+}
+
+@layer base {
+  * {
+    border-color: var(--color-line);
+  }
+
+  html {
+    scroll-behavior: smooth;
+    color-scheme: dark;
+    background: var(--color-void);
+  }
+
+  body {
+    background: var(--color-void);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.025em;
+    font-weight: 600;
+  }
+
+  fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
+  legend { padding: 0; width: 100%; }
+
+  ::selection {
+    background: var(--color-brand);
+    color: #10161a;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  /* Brand-tinted autofill instead of the browser's default blue slab */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--color-ink);
+    -webkit-box-shadow: 0 0 0 1000px var(--color-surface) inset;
+    caret-color: var(--color-ink);
+  }
+}
+
+@layer utilities {
+
+  .text-brand-gradient {
+    background: linear-gradient(100deg, var(--color-ink) 10%, var(--color-brand-soft) 55%, var(--color-brand) 90%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .label-condensed {
+    font-family: var(--font-condensed);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 600;
+  }
+
+  .grid-veil {
+    background-image:
+      linear-gradient(to right, rgba(92, 214, 215, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(92, 214, 215, 0.05) 1px, transparent 1px);
+    background-size: 56px 56px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

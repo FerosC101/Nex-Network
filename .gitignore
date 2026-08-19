@@ -1,0 +1,37 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Environment variables (keep .env.example checked in as the template)
+.env
+.env.*
+!.env.example
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Brand source masters — large binaries kept out of git deliberately.
+# GitHub warns above 50MB per file and these total ~212MB, which would bloat
+# every clone forever. The scripts that consume them are tracked; the masters
+# themselves live outside the repo. See brand/README.md.
+brand/*.blend
+brand/*.blend[0-9]*
+brand/NEX VIDEO REBRAND.mp4
