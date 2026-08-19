@@ -1,4 +1,4 @@
-import { useController, useFormContext } from 'react-hook-form';
+import { useController, useFormContext, useWatch } from 'react-hook-form';
 import type { RegistrationFormInput } from '@/schemas/registrationSchema';
 import { RadioCardGroup } from '@/components/ui/RadioCardGroup';
 import { CheckboxPillGroup } from '@/components/ui/CheckboxPillGroup';
@@ -14,6 +14,10 @@ export function StepBuilderProfile() {
   } = useFormContext<RegistrationFormInput>();
   const buildingStatus = useController({ name: 'buildingStatus', control });
   const collaborationNeeds = useController({ name: 'collaborationNeeds', control });
+  const projectDescription = useController({ name: 'projectDescription', control });
+
+  const projectName = useWatch({ control, name: 'projectName' });
+  const otherCollaborationNeed = useWatch({ control, name: 'otherCollaborationNeed' });
 
   const showProjectFields =
     buildingStatus.field.value === 'Yes' || buildingStatus.field.value === 'I have an idea';
@@ -40,12 +44,19 @@ export function StepBuilderProfile() {
           <TextField
             label="Project / Idea name"
             required
+            showCount
+            maxLength={100}
+            value={projectName ?? ''}
+            placeholder="e.g. SpartanRide"
             error={errors.projectName?.message}
             {...register('projectName')}
           />
           <TextAreaField
             label="Short description"
             hint="What's it about? A sentence or two is fine."
+            maxLength={500}
+            showCount
+            value={projectDescription.field.value ?? ''}
             error={errors.projectDescription?.message}
             {...register('projectDescription')}
           />
@@ -59,6 +70,10 @@ export function StepBuilderProfile() {
             <TextField
               label="Tell us more"
               required
+              showCount
+              maxLength={100}
+              value={otherCollaborationNeed ?? ''}
+              placeholder="e.g. UI Designers, Data Analysts"
               error={errors.otherCollaborationNeed?.message}
               {...register('otherCollaborationNeed')}
             />

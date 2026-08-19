@@ -7,7 +7,8 @@ import { COMMUNITY_GOALS } from '@/types/registration';
 
 export function StepGoals() {
   const { control, register, formState: { errors } } = useFormContext<RegistrationFormInput>();
-  const { field } = useController({ name: 'goals', control });
+  const goalsField = useController({ name: 'goals', control });
+  const notesField = useController({ name: 'additionalNotes', control });
 
   return (
     <div className="flex flex-col gap-6">
@@ -20,15 +21,16 @@ export function StepGoals() {
         legend="Community goals"
         required
         options={COMMUNITY_GOALS}
-        value={field.value}
-        onChange={field.onChange}
+        value={goalsField.field.value}
+        onChange={goalsField.field.onChange}
         error={errors.goals?.message}
       />
 
-      {field.value.includes('Other') && (
+      {goalsField.field.value.includes('Other') && (
         <TextField
           label="Tell us more"
           required
+          maxLength={100}
           error={errors.otherGoal?.message}
           {...register('otherGoal')}
         />
@@ -37,6 +39,9 @@ export function StepGoals() {
       <TextAreaField
         label="Anything else you want us to know?"
         hint="Optional"
+        maxLength={500}
+        showCount
+        value={notesField.field.value ?? ''}
         error={errors.additionalNotes?.message}
         {...register('additionalNotes')}
       />
