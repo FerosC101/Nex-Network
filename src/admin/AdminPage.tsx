@@ -16,7 +16,7 @@ const TABS: { key: Tab; label: string }[] = [
 ];
 
 export default function AdminPage() {
-  const { session, isAdmin, loading, sendMagicLink, signOut } = useAdminAuth();
+  const { session, isAdmin, loading, signIn, signOut } = useAdminAuth();
   const [tab, setTab] = useState<Tab>('pending');
   const [search, setSearch] = useState('');
   const [members, setMembers] = useState<MembersRow[]>([]);
@@ -68,7 +68,7 @@ export default function AdminPage() {
     );
   }
 
-  if (!session) return <SignIn onSend={sendMagicLink} />;
+  if (!session) return <SignIn onSignIn={signIn} />;
 
   // Signed in, but the address isn't on the allow-list in supabase/admin.sql.
   if (isAdmin === false) {

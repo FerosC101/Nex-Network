@@ -6,6 +6,11 @@
 --
 -- Design notes
 -- ------------
+-- * Sign-in is email + password, not magic links: Supabase's built-in SMTP
+--   is rate limited to a couple of messages an hour, and single-use links get
+--   burned by email scanners before a human clicks them (otp_expired). Create
+--   admin users in the dashboard under Authentication -> Users -> Add user,
+--   ticking "Auto Confirm User".
 -- * Admins are keyed by EMAIL, not auth.users.id, so you can authorise a
 --   teammate before they have ever signed in. There is no chicken-and-egg
 --   bootstrap: add the address here, they sign in with a magic link, and
