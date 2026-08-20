@@ -66,16 +66,19 @@ function inviteEmail(name: string, link: string, contact: string, site: string) 
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f6;padding:32px 16px;">
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:16px;overflow:hidden;">
-        <!-- Banner. Many clients block images by default, so the dark
-             background and the heading below carry the message on their own. -->
-        <tr><td style="background:#1b1a1f;line-height:0;">
-          <img src="${site}/email-banner.jpg" width="520" alt="Nex is now"
-               style="display:block;width:100%;max-width:520px;height:auto;border:0;color:#ffffff;font-size:20px;font-weight:600;" />
+        <!-- The mark on the dark header: transparent PNG, so the header colour
+             shows through and both halves of the S stay visible. Many clients
+             block images, so the dark block and the heading carry the message
+             on their own if it never loads. -->
+        <tr><td align="center" style="background:#1b1a1f;padding:36px 32px 8px;">
+          <img src="${site}/email-logo-3d.png" width="72" height="72" alt="Nex Network"
+               style="display:block;border:0;color:#5cd6d7;font-size:14px;font-weight:600;" />
         </td></tr>
-        <tr><td style="background:#1b1a1f;padding:24px 32px 28px;">
-          <h1 style="margin:0;color:#ffffff;font-size:26px;line-height:1.2;">You're in. ⚡</h1>
+        <tr><td align="center" style="background:#1b1a1f;padding:0 32px 32px;">
+          <p style="margin:0 0 6px;color:#5cd6d7;font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;">Nex Network</p>
+          <h1 style="margin:0;color:#ffffff;font-size:28px;line-height:1.2;">You're in.</h1>
         </td></tr>
-        <tr><td style="padding:28px 32px;">
+        <tr><td style="padding:30px 32px 28px;">
           <p style="margin:0 0 16px;color:#2b2a33;font-size:16px;line-height:1.6;">Hi ${safeName},</p>
           <p style="margin:0 0 16px;color:#4a4855;font-size:15px;line-height:1.65;">
             You're in. We checked your details and you're now part of Nex Network — a community of
