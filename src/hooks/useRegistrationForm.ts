@@ -92,6 +92,7 @@ export function useRegistrationForm() {
   const submissionInFlight = useRef(false);
   // Passive spam checks — see BotTrap.
   const [honeypot, setHoneypot] = useState('');
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const startedAt = useRef(Date.now());
 
   // 1. Load draft from localStorage on initial render
@@ -201,7 +202,7 @@ export function useRegistrationForm() {
     setSubmitError(null);
 
     try {
-      const outcome = await submitRegistration(values);
+      const outcome = await submitRegistration(values, captchaToken);
       setResult(outcome);
       if (outcome.success) {
         setSubmittedEmail(values.email);
@@ -239,5 +240,7 @@ export function useRegistrationForm() {
     clearDraft,
     honeypot,
     setHoneypot,
+    captchaToken,
+    setCaptchaToken,
   };
 }

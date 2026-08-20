@@ -1,4 +1,5 @@
 import { getSupabaseClient } from '@/lib/supabaseClient';
+import { env } from '@/config/env';
 import type { MembersInsert } from '@/types/database';
 import type { RegistrationPayload, RegistrationResult } from '@/types/registration';
 
@@ -59,7 +60,57 @@ export async function checkEmailRegistered(): Promise<null> {
  * backend (Supabase today) can be swapped later without touching any
  * component or form logic.
  */
-export async function submitRegistration(payload: RegistrationPayload): Promise<RegistrationResult> {
+async function submitViaFunction(
+  payload: RegistrationPayload,
+  captchaToken: string,
+): Promise<RegistrationResult> {
+  const response = await fetch(`${env.supabaseUrl}/functions/v1/register`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: env.supabaseAnonKey,
+    },
+    body: JSON.stringify({ token: captchaToken, registration: toRow(payload) }),
+  });
+
+  if (response.ok) return { success: true };
+
+  const detail = (await response.json().catch(() => ({}))) as { error?: string };
+  if (detail.error === 'duplicate') {
+    return {
+      success: false,
+      duplicate: true,
+      error:
+        "You've already registered with this email — hang tight, we'll be in touch once your application is reviewed.",
+    };
+  }
+  if (detail.error === 'captcha_failed' || detail.error === 'captcha_required') {
+    return {
+      success: false,
+      error: 'The anti-spam check did not pass. Please try the checkbox again.',
+    };
+  }
+  return { success: false, error: 'Something went wrong submitting your registration. Please try again.' };
+}
+
+export async function submitRegistration(
+  payload: RegistrationPayload,
+  captchaToken?: string | null,
+): Promise<RegistrationResult> {
+  // With Turnstile configured the insert goes through the Edge Function, which
+  // verifies the token before writing. Without it, the direct insert path is
+  // kept so the site keeps working before Turnstile is set up.
+  if (env.isCaptchaEnabled) {
+    if (!captchaToken) {
+      return { success: false, error: 'Please complete the anti-spam check first.' };
+    }
+    try {
+      return await submitViaFunction(payload, captchaToken);
+    } catch {
+      return { success: false, error: 'Something went wrong submitting your registration. Please try again.' };
+    }
+  }
+
   const supabase = getSupabaseClient();
 
   if (!supabase) {

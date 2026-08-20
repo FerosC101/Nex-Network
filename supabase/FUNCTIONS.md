@@ -123,3 +123,64 @@ drop trigger if exists members_invite_on_approval on public.members;
 ```
 
 Approvals keep working; invites go back to being sent by hand.
+
+
+---
+
+# CAPTCHA (Cloudflare Turnstile)
+
+Turnstile is wired up but **inert until configured** — with no site key the
+widget is skipped and registration posts straight to Supabase, exactly as
+before. Nothing breaks while you set this up.
+
+**A widget on the page alone protects nothing.** The REST endpoint is publicly
+writable with the publishable key, so a bot can post directly and never load
+the site. The protection only becomes real after step 4 below, which moves the
+insert behind server-side token verification and closes the direct path.
+
+## Setup
+
+**1. Create a Turnstile site** — https://dash.cloudflare.com → Turnstile → Add
+site. Free, no domain purchase needed. Add these hostnames:
+
+```
+nex-network.vercel.app
+localhost
+```
+
+You get a **site key** (public) and a **secret key** (private).
+
+**2. Give the function the secret**
+
+```bash
+cd /Users/vince/Codes/Nex/Nex-Register
+supabase secrets set TURNSTILE_SECRET_KEY="0x4AAA...your-secret"
+supabase functions deploy register --no-verify-jwt
+```
+
+**3. Give the site the site key** — in Vercel → Settings → Environment
+Variables, add `VITE_TURNSTILE_SITE_KEY`, then **redeploy** (Vite bakes it in
+at build time).
+
+**4. Close the direct write path** — only after a real registration works
+through the widget. Run `supabase/lock-down-insert.sql` in the SQL editor. Until
+this runs, the CAPTCHA is decorative.
+
+## Testing
+
+Cloudflare publishes keys that always pass or always fail, useful for local
+work:
+
+| Site key | Behaviour |
+| --- | --- |
+| `1x00000000000000000000AA` | always passes |
+| `2x00000000000000000000AB` | always blocks |
+
+Secret keys: `1x0000000000000000000000000000000AA` (pass),
+`2x0000000000000000000000000000000AA` (fail).
+
+## Rolling back
+
+If Turnstile causes trouble, clear `VITE_TURNSTILE_SITE_KEY` in Vercel and
+redeploy — the direct path resumes. If you already ran step 4, re-create the
+insert policy using the statement at the bottom of `lock-down-insert.sql`.

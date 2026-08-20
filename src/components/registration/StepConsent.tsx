@@ -1,8 +1,13 @@
 import { useFormContext } from 'react-hook-form';
 import { Mail } from 'lucide-react';
+import { Captcha } from '@/components/registration/Captcha';
 import type { RegistrationFormInput } from '@/schemas/registrationSchema';
 
-export function StepConsent() {
+interface StepConsentProps {
+  onCaptchaToken: (token: string | null) => void;
+}
+
+export function StepConsent({ onCaptchaToken }: StepConsentProps) {
   const {
     register,
     formState: { errors },
@@ -42,6 +47,9 @@ export function StepConsent() {
             I agree to the Nex Network community terms and privacy notice.
           </span>
         </label>
+        <div className="mt-5">
+          <Captcha onToken={onCaptchaToken} />
+        </div>
         {errors.agreedToTerms && (
           <p id="consent-error" role="alert" className="mt-2 text-xs font-medium text-red-300">
             {errors.agreedToTerms.message}

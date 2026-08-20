@@ -26,8 +26,24 @@ export const env = {
   /** Rough turnaround shown on the success screen — copy only, no logic depends on it. */
   reviewWindow: readEnv('VITE_REVIEW_WINDOW', 'a few days'),
 
+  /**
+   * Cloudflare Turnstile site key (public by design).
+   *
+   * When empty the widget is skipped entirely and registration posts straight
+   * to Supabase, exactly as before — so the site keeps working before Turnstile
+   * is configured. Protection only becomes real once the register Edge
+   * Function is deployed AND the public insert policy is dropped; until then a
+   * bot can bypass the widget by calling the REST endpoint directly.
+   */
+  turnstileSiteKey: readEnv('VITE_TURNSTILE_SITE_KEY'),
+
   supabaseUrl: readEnv('VITE_SUPABASE_URL'),
   supabaseAnonKey: readEnv('VITE_SUPABASE_ANON_KEY'),
+
+  /** True once a Turnstile site key is configured. */
+  get isCaptchaEnabled(): boolean {
+    return Boolean(this.turnstileSiteKey);
+  },
 
   /** True once real Supabase credentials are supplied via env vars. */
   get isSupabaseConfigured(): boolean {

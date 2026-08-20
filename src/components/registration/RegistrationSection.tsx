@@ -21,7 +21,6 @@ const STEP_COMPONENTS = [
   StepInterests,
   StepGoals,
   StepBuilderProfile,
-  StepConsent,
 ];
 
 export function RegistrationSection() {
@@ -41,6 +40,7 @@ export function RegistrationSection() {
     clearDraft,
     honeypot,
     setHoneypot,
+    setCaptchaToken,
   } = useRegistrationForm();
 
   const isLastStep = step === totalSteps - 1;
@@ -108,7 +108,11 @@ export function RegistrationSection() {
                   exit={{ opacity: 0, x: -16 }}
                   transition={{ duration: 0.25, ease: 'easeOut' }}
                 >
-                  <CurrentStep />
+                  {isLastStep ? (
+                    <StepConsent onCaptchaToken={setCaptchaToken} />
+                  ) : (
+                    <CurrentStep />
+                  )}
                 </motion.div>
               </AnimatePresence>
 
