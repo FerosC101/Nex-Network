@@ -118,7 +118,11 @@ export const basicInfoSchema = z.object({
 });
 export type BasicInfoForm = z.infer<typeof basicInfoSchema>;
 
-export const studentInfoSchema = z.object({
+/** Senior high students take a strand; a BS/AB title means they picked the wrong year level. */
+const SENIOR_HIGH = new Set<string>(['Grade 11', 'Grade 12']);
+const DEGREE_TITLE = /^\s*(bs|ba|ab|bsc|bachelor)\b/i;
+
+const studentInfoObject = z.object({
   school: z
     .string()
     .trim()
@@ -134,9 +138,19 @@ export const studentInfoSchema = z.object({
     .refine((v) => !hasConsecutiveSpam(v, 4), 'Course / Program contains too many repeated characters.'),
   yearLevel: z.enum(YEAR_LEVELS, { error: 'Select your year level.' }),
 });
+export const studentInfoSchema = studentInfoObject.superRefine((data, ctx) => {
+  if (SENIOR_HIGH.has(data.yearLevel) && DEGREE_TITLE.test(data.courseProgram ?? '')) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['courseProgram'],
+      message:
+        'Grade 11–12 take a strand (STEM, ABM, HUMSS, GAS, TVL). Choose a college year level if you\'re taking a degree.',
+    });
+  }
+});
 export type StudentInfoForm = z.infer<typeof studentInfoSchema>;
 
-export const interestsSchema = z.object({
+const interestsObject = z.object({
   interests: z.array(z.enum(INTERESTS)).min(1, 'Pick at least one interest.'),
   otherInterest: z
     .string()
@@ -146,9 +160,18 @@ export const interestsSchema = z.object({
     .optional()
     .default(''),
 });
+export const interestsSchema = interestsObject.superRefine((data, ctx) => {
+  if (data.interests?.includes('Other') && !data.otherInterest?.trim()) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['otherInterest'],
+      message: "You picked Other — tell us what you're into.",
+    });
+  }
+});
 export type InterestsForm = z.infer<typeof interestsSchema>;
 
-export const goalsSchema = z.object({
+const goalsObject = z.object({
   goals: z.array(z.enum(COMMUNITY_GOALS)).min(1, "Pick at least one — what are you hoping to find?"),
   otherGoal: z
     .string()
@@ -165,6 +188,15 @@ export const goalsSchema = z.object({
     .optional()
     .default(''),
 });
+export const goalsSchema = goalsObject.superRefine((data, ctx) => {
+  if (data.goals?.includes('Other') && !data.otherGoal?.trim()) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['otherGoal'],
+      message: "You picked Other — tell us what you're hoping to find.",
+    });
+  }
+});
 export type GoalsForm = z.infer<typeof goalsSchema>;
 
 /**
@@ -172,6 +204,8 @@ export type GoalsForm = z.infer<typeof goalsSchema>;
  * COMBINED schema, not the per-step ones.
  */
 type CrossFieldData = {
+  yearLevel?: string;
+  courseProgram?: string;
   buildingStatus?: string | null;
   projectName?: string;
   projectDescription?: string;
@@ -200,6 +234,17 @@ function builderRules(data: CrossFieldData, ctx: z.RefinementCtx) {
 
 function crossFieldRules(data: CrossFieldData, ctx: z.RefinementCtx) {
   builderRules(data, ctx);
+  if (
+    SENIOR_HIGH.has(String(data.yearLevel ?? '')) &&
+    DEGREE_TITLE.test(String(data.courseProgram ?? ''))
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['courseProgram'],
+      message:
+        'Grade 11–12 take a strand (STEM, ABM, HUMSS, GAS, TVL). Choose a college year level if you\'re taking a degree.',
+    });
+  }
   if (data.interests?.includes('Other') && !data.otherInterest?.trim()) {
     ctx.addIssue({
       code: 'custom',
@@ -254,9 +299,9 @@ export type ConsentForm = z.infer<typeof consentSchema>;
 
 /** Full schema — union of every step, used for the final pre-submit check. */
 const registrationObject = basicInfoSchema
-  .extend(studentInfoSchema.shape)
-  .extend(interestsSchema.shape)
-  .extend(goalsSchema.shape)
+  .extend(studentInfoObject.shape)
+  .extend(interestsObject.shape)
+  .extend(goalsObject.shape)
   .extend(builderProfileObject.shape)
   .extend(consentSchema.shape);
 

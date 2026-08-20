@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useForm, type Path } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { registrationSchema, type RegistrationForm, type RegistrationFormInput } from '@/schemas/registrationSchema';
+import {
+  registrationSchema,
+  STEP_SCHEMAS,
+  type RegistrationForm,
+  type RegistrationFormInput,
+} from '@/schemas/registrationSchema';
 import { submitRegistration } from '@/services/registrationService';
 import type { RegistrationResult } from '@/types/registration';
 
@@ -150,6 +155,28 @@ export function useRegistrationForm() {
     const fields = STEP_FIELDS[step];
     const valid = await form.trigger(fields, { shouldFocus: true });
     if (!valid) return;
+
+    // The resolver validates the COMBINED schema, and zod only runs an
+    // object's .superRefine() after the base object parses. Mid-flow the later
+    // steps are still empty, so that parse always fails and every conditional
+    // rule — "Other" needing detail, a project needing a name — was silently
+    // skipped. Re-checking against this step's own schema, where the data IS
+    // complete, is what actually enforces them.
+    const stepSchema = STEP_SCHEMAS[step];
+    const parsed = stepSchema.safeParse(form.getValues());
+    if (!parsed.success) {
+      let focused = false;
+      for (const issue of parsed.error.issues) {
+        const path = issue.path.join('.') as Path<RegistrationFormInput>;
+        if (!fields.includes(path)) continue;
+        form.setError(path, { type: 'manual', message: issue.message });
+        if (!focused) {
+          form.setFocus(path);
+          focused = true;
+        }
+      }
+      if (focused) return;
+    }
 
     setStep((s) => Math.min(s + 1, STEPS.length - 1));
   }, [form, step]);
