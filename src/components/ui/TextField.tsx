@@ -111,8 +111,15 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
             {label}
             {required && <span className="ml-1 text-brand">*</span>}
           </label>
-          {maxLength && showCount && (
-            <span className="text-xs font-mono text-ink-4">
+          {/* Only worth showing as the limit gets close. Always-on counters
+              read as clutter, and a full field ("11/11") looks like an error
+              when it is simply a complete answer. */}
+          {maxLength && showCount && currentLength >= maxLength * 0.7 && (
+            <span
+              className={`font-mono text-xs ${
+                currentLength >= maxLength ? 'text-ink-3' : 'text-ink-4'
+              }`}
+            >
               {currentLength}/{maxLength}
             </span>
           )}

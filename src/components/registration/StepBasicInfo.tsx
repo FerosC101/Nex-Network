@@ -119,7 +119,6 @@ export function StepBasicInfo() {
           type="tel"
           required
           phoneOnly
-          showCount
           maxLength={11}
           value={typeof mobileNumber === 'string' ? mobileNumber : ''}
           autoComplete="tel"
@@ -135,7 +134,6 @@ export function StepBasicInfo() {
         type="number"
         required
         numericOnly
-        showCount
         maxLength={2}
         min={13}
         max={99}

@@ -28,11 +28,13 @@ art = bpy.context.view_layer.objects.active
 bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 print("imported dims:", tuple(round(v, 3) for v in art.dimensions))
 
-# The glTF importer restores Blender's Z-up, so the art faces +Z. The camera
-# looks straight down -Z at that face; a small yaw about Y gives it depth.
+# The model's readable face points -Z, so the camera sits on that side. Turning
+# the model 180 instead would only show its back, which is the mirror image —
+# that is how the wordmark ended up reversed. The reflectors move with the
+# camera, or the lit face would be the one we cannot see.
 bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='BOUNDS')
 art.location = (0, 0, 0)
-art.rotation_euler = (0, math.radians(-17), 0)
+art.rotation_euler = (0, math.radians(17), 0)
 print("final dims:", tuple(round(v, 3) for v in art.dimensions))
 
 cam_data = bpy.data.cameras.new('cam')

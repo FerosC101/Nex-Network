@@ -122,9 +122,10 @@ function LogoModel({
     <group ref={group}>
       <Center>
         {/* Blender is Z-up and glTF is Y-up, so the exporter lays the art flat.
-            Tipping it back up puts its face toward the camera. Both models are
-            exported facing +Z, so this correction is the same for each. */}
-        <group rotation={[Math.PI / 2, 0, 0]}>
+            Tipping it up by -90 rather than +90 matters: +90 presents the face
+            vertically mirrored, which is invisible on the S (it is rotationally
+            symmetric) but renders the wordmark upside down. */}
+        <group rotation={[-Math.PI / 2, 0, 0]}>
           <primitive object={model} />
         </group>
       </Center>
