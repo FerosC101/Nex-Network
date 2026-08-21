@@ -51,7 +51,45 @@ const json = (body: unknown, status = 200) =>
     headers: { 'Content-Type': 'application/json' },
   });
 
-function inviteEmail(name: string, link: string, contact: string, site: string) {
+/**
+ * A deliberately plain version, used by default.
+ *
+ * Mail from a personal Gmail account carrying an m.me invite link already
+ * looks like phishing to a filter; wrapping it in a designed template with
+ * remote images and a CTA button pushes it further. This reads like a note a
+ * person typed, which is what it actually is — and what Gmail's own
+ * infrastructure is least suspicious of.
+ *
+ * Set EMAIL_STYLE=branded to use the designed version instead, once the
+ * sending reputation can carry it.
+ */
+function plainInvite(name: string, link: string, contact: string) {
+  const safeName = name.replace(/[<>&]/g, '');
+  const text =
+    `Hi ${safeName},\n\n` +
+    `You're in — we checked your details and you're now part of Nex Network, ` +
+    `a community of student builders across Batangas.\n\n` +
+    `Here's the group chat:\n${link}\n\n` +
+    `Introduce yourself when you join: what you're studying, what you're into, ` +
+    `and anything you're building or want to build. That's usually all it takes ` +
+    `for someone to find you.\n\n` +
+    `No experience required. Just start.\n\n` +
+    `- Nex Network\n${contact}`;
+  return {
+    subject: 'Your Nex Network invite',
+    text,
+    html:
+      `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;` +
+      `font-size:15px;line-height:1.6;color:#222;">` +
+      text
+        .split('\n\n')
+        .map((para) => `<p>${para.replace(/\n/g, '<br>').replace(link, `<a href="${link}">${link}</a>`)}</p>`)
+        .join('') +
+      `</div>`,
+  };
+}
+
+function brandedInvite(name: string, link: string, contact: string, site: string) {
   const safeName = name.replace(/[<>&]/g, '');
   return {
     subject: 'Your Nex Network invite — welcome aboard',
@@ -174,7 +212,10 @@ Deno.serve(async (req) => {
   // custom domain later doesn't silently break every image.
   const site = (Deno.env.get('SITE_URL') ?? 'https://nex-network.vercel.app').replace(/\/$/, '');
   const name = row.preferred_name?.trim() || row.first_name;
-  const mail = inviteEmail(name, link, contact, site);
+  const mail =
+    Deno.env.get('EMAIL_STYLE') === 'branded'
+      ? brandedInvite(name, link, contact, site)
+      : plainInvite(name, link, contact);
 
   // On any failure, leave invite_sent_at null so the row stays in "Awaiting
   // invite" in the admin UI and can be sent by hand. Failing loudly beats a
