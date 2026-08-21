@@ -19,6 +19,7 @@ interface ComboboxFieldProps {
   strictSelection?: boolean;
   maxLength?: number;
   showCount?: boolean;
+  emptyMessage?: string;
 }
 
 export const ComboboxField = forwardRef<HTMLInputElement, ComboboxFieldProps>(
@@ -40,6 +41,7 @@ export const ComboboxField = forwardRef<HTMLInputElement, ComboboxFieldProps>(
       strictSelection = false,
       maxLength,
       showCount = false,
+      emptyMessage = 'No matches found in the list.',
     },
     ref,
   ) => {
@@ -92,6 +94,9 @@ export const ComboboxField = forwardRef<HTMLInputElement, ComboboxFieldProps>(
               setInputValue('');
               onChange?.('');
             }
+          } else if (allowCustom && !strictSelection && inputValue.trim()) {
+            // Commit typed custom string on click outside
+            onChange?.(inputValue.trim());
           }
 
           onBlur?.();
@@ -99,7 +104,7 @@ export const ComboboxField = forwardRef<HTMLInputElement, ComboboxFieldProps>(
       }
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [onBlur, strictSelection, inputValue, options, onChange]);
+    }, [onBlur, strictSelection, allowCustom, inputValue, options, onChange]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       let newValue = e.target.value;
@@ -145,6 +150,9 @@ export const ComboboxField = forwardRef<HTMLInputElement, ComboboxFieldProps>(
         if (isOpen && highlightedIndex >= 0 && highlightedIndex < filteredOptions.length) {
           e.preventDefault();
           handleSelectOption(filteredOptions[highlightedIndex]);
+        } else if (isOpen && allowCustom && inputValue.trim()) {
+          e.preventDefault();
+          handleSelectOption(inputValue.trim());
         }
       } else if (e.key === 'Escape') {
         setIsOpen(false);
@@ -178,7 +186,7 @@ export const ComboboxField = forwardRef<HTMLInputElement, ComboboxFieldProps>(
             name={name}
             type="text"
             disabled={disabled}
-            placeholder={disabled ? 'Select province first…' : placeholder}
+            placeholder={placeholder}
             value={inputValue}
             onChange={handleInputChange}
             onFocus={() => {
@@ -253,7 +261,7 @@ export const ComboboxField = forwardRef<HTMLInputElement, ComboboxFieldProps>(
                 <li className="px-3 py-2.5 text-sm text-ink-4">
                   {allowCustom && !strictSelection
                     ? `No matches found. Press enter to use "${inputValue}"`
-                    : 'No matching province/city found in the list.'}
+                    : emptyMessage}
                 </li>
               )}
             </ul>
