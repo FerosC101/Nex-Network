@@ -23,6 +23,20 @@ export const YEAR_LEVELS = [
 ] as const;
 export type YearLevel = (typeof YEAR_LEVELS)[number];
 
+export const SHS_STRANDS = [
+  'STEM (Science, Technology, Engineering, and Mathematics)',
+  'ABM (Accountancy, Business, and Management)',
+  'HUMSS (Humanities and Social Sciences)',
+  'GAS (General Academic Strand)',
+  'TVL - ICT (Information & Communications Technology)',
+  'TVL - Home Economics',
+  'TVL - Industrial Arts',
+  'TVL - Agri-Fishery Arts',
+  'Arts and Design',
+  'Sports',
+] as const;
+export type SHSStrand = (typeof SHS_STRANDS)[number];
+
 export const INTERESTS = [
   'Artificial Intelligence',
   'Machine Learning',
