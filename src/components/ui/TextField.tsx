@@ -88,8 +88,10 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
         val = val.replace(/\D/g, '');
         val = sanitizeConsecutiveSpam(val, maxConsecutive);
       } else if (lettersOnly) {
-        // Allow letters (including international), spaces, hyphens, apostrophes
-        val = val.replace(/[^a-zA-Z\s'-]/g, '');
+        // \p{L} is any Unicode letter, so Ñ and accented vowels survive. The
+        // old a-zA-Z class silently deleted them as the student typed —
+        // "Niño" became "Nio" — quietly mangling ordinary Filipino names.
+        val = val.replace(/[^\p{L}\p{M}\s'.-]/gu, '');
         val = sanitizeConsecutiveSpam(val, maxConsecutive);
       } else {
         // General text anti-spam

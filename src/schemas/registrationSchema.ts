@@ -5,6 +5,17 @@ import { YEAR_LEVELS, INTERESTS, COMMUNITY_GOALS, BUILDING_STATUSES, COLLABORATI
 // Accepts PH mobile formats (09xxxxxxxxx, +639xxxxxxxxx) and general use.
 const PHONE_REGEX = /^[+]?[\d\s()-]{7,20}$/;
 
+/**
+ * What may appear in a person's name.
+ *
+ * \p{L} is any Unicode letter, not just A-Z. That matters here: an ASCII-only
+ * rule rejects Ñ and every accented vowel, which quietly turns away Niño,
+ * Peña, Muñoz and José — ordinary Filipino names. \p{M} covers accents typed
+ * as separate combining marks, and the punctuation allows O'Brien, Mary-Jane
+ * and the "Ma." short for Maria.
+ */
+const NAME_REGEX = /^[\p{L}\p{M}\s'.-]+$/u;
+
 /** Helper to detect excessive consecutive repeated characters (e.g. "aaaaa") */
 export function hasConsecutiveSpam(val: string, maxConsecutive = 4): boolean {
   if (!val) return false;
@@ -58,20 +69,20 @@ export const basicInfoSchema = z.object({
     .trim()
     .min(1, 'First name is required.')
     .max(50, 'First name must be 50 characters or less.')
-    .refine((v) => /^[a-zA-Z\s'-]+$/.test(v), 'First name can only contain letters.')
+    .refine((v) => NAME_REGEX.test(v), 'First name can only contain letters.')
     .refine((v) => !hasConsecutiveSpam(v, 4), 'First name contains too many repeated characters.'),
   lastName: z
     .string()
     .trim()
     .min(1, 'Last name is required.')
     .max(50, 'Last name must be 50 characters or less.')
-    .refine((v) => /^[a-zA-Z\s'-]+$/.test(v), 'Last name can only contain letters.')
+    .refine((v) => NAME_REGEX.test(v), 'Last name can only contain letters.')
     .refine((v) => !hasConsecutiveSpam(v, 4), 'Last name contains too many repeated characters.'),
   preferredName: z
     .string()
     .trim()
     .max(50, 'Preferred name must be 50 characters or less.')
-    .refine((v) => !v || /^[a-zA-Z\s'-]+$/.test(v), 'Preferred name can only contain letters.')
+    .refine((v) => !v || NAME_REGEX.test(v), 'Preferred name can only contain letters.')
     .refine((v) => !v || !hasConsecutiveSpam(v, 4), 'Preferred name contains too many repeated characters.')
     .optional()
     .default(''),
