@@ -52,7 +52,7 @@ const json = (body: unknown, status = 200) =>
   });
 
 /**
- * A deliberately plain version, used by default.
+ * A deliberately plain alternative, off by default.
  *
  * Mail from a personal Gmail account carrying an m.me invite link already
  * looks like phishing to a filter; wrapping it in a designed template with
@@ -60,8 +60,7 @@ const json = (body: unknown, status = 200) =>
  * person typed, which is what it actually is — and what Gmail's own
  * infrastructure is least suspicious of.
  *
- * Set EMAIL_STYLE=branded to use the designed version instead, once the
- * sending reputation can carry it.
+ * Set EMAIL_STYLE=plain to use it if spam placement becomes a real problem.
  */
 function plainInvite(name: string, link: string, contact: string) {
   const safeName = name.replace(/[<>&]/g, '');
@@ -212,10 +211,15 @@ Deno.serve(async (req) => {
   // custom domain later doesn't silently break every image.
   const site = (Deno.env.get('SITE_URL') ?? 'https://nex-network.vercel.app').replace(/\/$/, '');
   const name = row.preferred_name?.trim() || row.first_name;
+  // Branded by default: the team would rather send the designed email and
+  // tell students to check spam than send a plainer one that lands better.
+  // EMAIL_STYLE=plain switches to the stripped-back version, which reads as a
+  // personal note and gets filtered less — worth reaching for if spam
+  // placement ever costs more than the polish is worth.
   const mail =
-    Deno.env.get('EMAIL_STYLE') === 'branded'
-      ? brandedInvite(name, link, contact, site)
-      : plainInvite(name, link, contact);
+    Deno.env.get('EMAIL_STYLE') === 'plain'
+      ? plainInvite(name, link, contact)
+      : brandedInvite(name, link, contact, site);
 
   // On any failure, leave invite_sent_at null so the row stays in "Awaiting
   // invite" in the admin UI and can be sent by hand. Failing loudly beats a
