@@ -48,9 +48,20 @@ export function RegistrationSection() {
 
   const stepContainerRef = useRef<HTMLDivElement>(null);
 
-  // Accessibility (a11y): Shift DOM focus to top of step card on step transition
+  // Move focus to the new step so screen readers and keyboard users land in
+  // the right place — but never on first render. Focusing an element scrolls
+  // it into view, so doing this on mount threw every visitor straight past
+  // the hero and into the middle of the form.
+  const hasRendered = useRef(false);
   useEffect(() => {
-    stepContainerRef.current?.focus();
+    if (!hasRendered.current) {
+      hasRendered.current = true;
+      return;
+    }
+    stepContainerRef.current?.focus({ preventScroll: true });
+    // Bring the card into view deliberately, rather than as a side effect of
+    // focus, so the step header is visible instead of wherever focus landed.
+    stepContainerRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }, [step]);
 
   return (
