@@ -224,7 +224,12 @@ Deno.serve(async (req) => {
   // On any failure, leave invite_sent_at null so the row stays in "Awaiting
   // invite" in the admin UI and can be sent by hand. Failing loudly beats a
   // silent drop — nobody should fall through the cracks unnoticed.
-  if (smtpUser && smtpPassword) {
+  // Resend wins when configured. It is the better transport — a real sending
+  // identity on a domain you own, rather than a personal mailbox — so once a
+  // key exists there is no reason to prefer SMTP. This ordering also means
+  // switching over is one `supabase secrets set`, with the Gmail path left in
+  // place as a fallback if the key is ever removed.
+  if (!resendKey && smtpUser && smtpPassword) {
     const client = new SMTPClient({
       connection: {
         hostname: 'smtp.gmail.com',
