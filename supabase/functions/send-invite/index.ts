@@ -234,8 +234,8 @@ Deno.serve(async (req) => {
   if (!useResend && smtpUser && smtpPassword) {
     const client = new SMTPClient({
       connection: {
-        hostname: 'smtp.gmail.com',
-        port: 465,
+        hostname: Deno.env.get('SMTP_HOST') ?? 'smtp.gmail.com',
+        port: Number(Deno.env.get('SMTP_PORT') ?? 465),
         tls: true,
         auth: { username: smtpUser, password: smtpPassword },
       },
