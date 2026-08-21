@@ -224,12 +224,14 @@ Deno.serve(async (req) => {
   // On any failure, leave invite_sent_at null so the row stays in "Awaiting
   // invite" in the admin UI and can be sent by hand. Failing loudly beats a
   // silent drop — nobody should fall through the cracks unnoticed.
-  // Resend wins when configured. It is the better transport — a real sending
-  // identity on a domain you own, rather than a personal mailbox — so once a
-  // key exists there is no reason to prefer SMTP. This ordering also means
-  // switching over is one `supabase secrets set`, with the Gmail path left in
-  // place as a fallback if the key is ever removed.
-  if (!resendKey && smtpUser && smtpPassword) {
+  // Resend takes over only once RESEND_FROM names a sender on a domain
+  // verified in Resend. The API key alone is not enough: with Resend's test
+  // domain the service refuses any recipient except the account owner, so
+  // switching on the key by itself would silently break every student invite.
+  // Setting RESEND_FROM is the deliberate signal that the domain is ready.
+  const resendFrom = Deno.env.get('RESEND_FROM');
+  const useResend = Boolean(resendKey && resendFrom);
+  if (!useResend && smtpUser && smtpPassword) {
     const client = new SMTPClient({
       connection: {
         hostname: 'smtp.gmail.com',
@@ -267,7 +269,7 @@ Deno.serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: `Nex Network <${sender}>`,
+        from: `Nex Network <${resendFrom ?? sender}>`,
         to: [row.email],
         reply_to: contact || undefined,
         subject: mail.subject,
