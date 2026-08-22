@@ -60,8 +60,14 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
       let val = e.target.value;
 
       if (phoneOnly) {
-        // Digits only
-        let digits = val.replace(/\D/g, '');
+        let raw = val.trim();
+        if (raw.startsWith('+639')) {
+          raw = '09' + raw.slice(4);
+        } else if (raw.startsWith('639')) {
+          raw = '09' + raw.slice(3);
+        }
+
+        let digits = raw.replace(/\D/g, '');
 
         // Enforce starting with 09 if user typed digits
         if (digits.length > 0) {
@@ -130,7 +136,7 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
           ref={ref}
           id={fieldId}
           type={type}
-          maxLength={maxLength}
+          maxLength={phoneOnly ? 20 : maxLength}
           value={value}
           defaultValue={defaultValue}
           onKeyDown={handleKeyDown}
