@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, Check, Clock, Copy, Loader2, MailQuestion, SearchX } from 'lucide-react';
+import { ArrowRight, Clock, Loader2, MailQuestion, SearchX } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { TextField } from '@/components/ui/TextField';
 import { env } from '@/config/env';
@@ -18,7 +18,6 @@ export function InviteLookup() {
   const [email, setEmail] = useState('');
   const [result, setResult] = useState<LookupResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -27,17 +26,6 @@ export function InviteLookup() {
     setResult(null);
     setResult(await lookupInvite(email.trim()));
     setIsLoading(false);
-  }
-
-  async function handleCopy(link: string) {
-    try {
-      await navigator.clipboard.writeText(link);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Clipboard is blocked in some embedded browsers; the link is visible
-      // and selectable anyway, so this needs no error state of its own.
-    }
   }
 
   return (
@@ -135,34 +123,15 @@ export function InviteLookup() {
                     <p className="mt-1.5 text-sm text-ink-2">
                       Here's your group chat link — see you in there.
                     </p>
-                    <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                      <a
-                        href={result.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-void transition-opacity hover:opacity-90"
-                      >
-                        Open the group chat
-                        <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                      </a>
-                      <button
-                        type="button"
-                        onClick={() => handleCopy(result.link)}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-line px-4 py-3 text-sm text-ink-2 transition-colors hover:border-brand hover:text-brand"
-                      >
-                        {copied ? (
-                          <>
-                            <Check className="h-4 w-4" aria-hidden="true" />
-                            Copied
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="h-4 w-4" aria-hidden="true" />
-                            Copy link
-                          </>
-                        )}
-                      </button>
-                    </div>
+                    <a
+                      href={result.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-void transition-opacity hover:opacity-90"
+                    >
+                      Open the group chat
+                      <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                    </a>
                   </div>
                 )}
 
