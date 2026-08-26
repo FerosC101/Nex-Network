@@ -13,6 +13,7 @@ import { StepBuilderProfile } from '@/components/registration/StepBuilderProfile
 import { StepConsent } from '@/components/registration/StepConsent';
 import { SuccessScreen } from '@/components/registration/SuccessScreen';
 import { BotTrap } from '@/components/registration/BotTrap';
+import { InviteLookup } from '@/components/registration/InviteLookup';
 import { useRegistrationForm } from '@/hooks/useRegistrationForm';
 
 const STEP_COMPONENTS = [
@@ -168,6 +169,10 @@ export function RegistrationSection() {
           </FormProvider>
         )}
       </div>
+
+      {/* Only while the form is still up: someone who just submitted has no
+          invite to recover yet, and offering to find one would confuse. */}
+      {!isSuccess && <InviteLookup />}
     </Section>
   );
 }

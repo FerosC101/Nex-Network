@@ -101,6 +101,15 @@ Deno.serve(async (req) => {
   // Send a single copy somewhere for review before the real run. Worth doing
   // every time: the list is 81 people and there is no unsend.
   const testTo: string | undefined = body?.testTo;
+  // Batched on purpose. 81 sends can outrun the function's wall clock, and a
+  // timeout mid-run would leave no record of who was already emailed — which
+  // risks double-sending on a retry. Small batches keep that knowable.
+  const offset: number = Number(body?.offset ?? 0);
+  // Someone approved an hour ago has an unread invite sitting in their inbox;
+  // "Did you miss this?" would only confuse them. Default to nudging people
+  // whose invite has had at least a day to be missed.
+  const minInviteAgeHours: number = Number(body?.minInviteAgeHours ?? 24);
+  const limit: number = Number(body?.limit ?? 25);
 
   const link = Deno.env.get('NEX_INVITE_LINK');
   const sender = Deno.env.get('SENDER_EMAIL');
@@ -112,10 +121,19 @@ Deno.serve(async (req) => {
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   );
+  // Only people who have not already been bumped. Stamping each row as it
+  // sends makes this safe to re-run: a timeout mid-batch can no longer cause
+  // anyone to receive the same email twice.
   const { data, error } = await admin
     .from('members')
     .select('id, email, first_name, preferred_name')
     .eq('status', 'approved')
+    .is('bumped_at', null)
+    .not('invite_sent_at', 'is', null)
+    .lt(
+      'invite_sent_at',
+      new Date(Date.now() - minInviteAgeHours * 3_600_000).toISOString(),
+    )
     .order('created_at');
 
   if (error) return json({ error: error.message }, 500);
@@ -164,38 +182,70 @@ Deno.serve(async (req) => {
     });
   }
 
-  const client = new SMTPClient({
-    connection: {
-      hostname: Deno.env.get('SMTP_HOST') ?? 'smtp.gmail.com',
-      port: Number(Deno.env.get('SMTP_PORT') ?? 465),
-      tls: true,
-      auth: { username: Deno.env.get('SMTP_USER')!, password: Deno.env.get('SMTP_PASSWORD')! },
-    },
-  });
+  // One connection per message, not one for the whole batch. Brevo's relay
+  // closes a connection after a handful of sends, and denomailer blocks
+  // forever on the dead socket instead of throwing — which is what stalled an
+  // earlier run at four messages and took the whole request down with it.
+  const newClient = () =>
+    new SMTPClient({
+      connection: {
+        hostname: Deno.env.get('SMTP_HOST') ?? 'smtp.gmail.com',
+        port: Number(Deno.env.get('SMTP_PORT') ?? 465),
+        tls: true,
+        auth: { username: Deno.env.get('SMTP_USER')!, password: Deno.env.get('SMTP_PASSWORD')! },
+      },
+    });
 
+  // Belt and braces: even a fresh connection can hang, so no single message is
+  // allowed to eat the request budget the rest of the batch needs.
+  const withTimeout = <T,>(work: Promise<T>, ms: number): Promise<T> =>
+    Promise.race([
+      work,
+      new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error(`timed out after ${ms}ms`)), ms)
+      ),
+    ]);
+
+  const batch = recipients.slice(offset, offset + limit);
   const sent: string[] = [];
   const failed: { email: string; error: string }[] = [];
-  for (const person of recipients) {
+  for (const person of batch) {
     const mail = bumpEmail(person.preferred_name?.trim() || person.first_name, link, contact, site);
+    const client = newClient();
     try {
-      await client.send({
-        from: `Nex Network <${sender}>`,
-        to: person.email,
-        replyTo: contact || undefined,
-        subject: mail.subject,
-        content: mail.text,
-        html: mail.html,
-        headers: { 'List-Unsubscribe': `<mailto:${contact}?subject=unsubscribe>` },
-      });
+      await withTimeout(
+        client.send({
+          from: `Nex Network <${sender}>`,
+          to: person.email,
+          replyTo: contact || undefined,
+          subject: mail.subject,
+          content: mail.text,
+          html: mail.html,
+          headers: { 'List-Unsubscribe': `<mailto:${contact}?subject=unsubscribe>` },
+        }),
+        20_000,
+      );
       sent.push(person.email);
+      // Stamped the moment the send succeeds, so a crash mid-batch can never
+      // cause a repeat: the next run simply skips whoever is already stamped.
+      await admin.from('members').update({ bumped_at: new Date().toISOString() }).eq('id', person.id);
     } catch (err) {
       failed.push({ email: person.email, error: String(err) });
     }
+    try { await withTimeout(client.close(), 5_000); } catch { /* already gone */ }
     // A brief gap between messages: a burst is what relays and receivers
     // treat as spam, and this only has to run once.
-    await new Promise((r) => setTimeout(r, 900));
+    await new Promise((r) => setTimeout(r, 400));
   }
-  try { await client.close(); } catch { /* already closed */ }
 
-  return json({ sent: sent.length, failed: failed.length, failures: failed });
+  return json({
+    sent: sent.length,
+    failed: failed.length,
+    failures: failed,
+    offset,
+    batchSize: batch.length,
+    totalApproved: recipients.length,
+    remaining: Math.max(0, recipients.length - (offset + batch.length)),
+    sentTo: sent,
+  });
 });
