@@ -48,7 +48,10 @@ export function StepBasicInfo() {
       if (selectedCity && !cityOptions.some((c) => c.toLowerCase() === selectedCity.toLowerCase())) {
         setValue('city', '', { shouldValidate: true });
       }
-    } else {
+    } else if (selectedCity) {
+      // Only when there is something to clear. Firing this unconditionally
+      // validated an untouched empty field on mount, so a first-time visitor
+      // met "City / Municipality is required" in red before typing anything.
       setValue('city', '', { shouldValidate: true });
     }
   }, [isValidProvince, cityOptions, selectedCity, setValue]);

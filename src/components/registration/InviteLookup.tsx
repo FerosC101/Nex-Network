@@ -43,14 +43,33 @@ export function InviteLookup() {
   return (
     <div className="mx-auto mt-6 max-w-xl">
       {!open ? (
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="mx-auto flex items-center gap-2 text-sm text-ink-3 transition-colors hover:text-brand"
-        >
-          <MailQuestion className="h-4 w-4" aria-hidden="true" />
-          Already registered but never got your invite?
-        </button>
+        // Deliberately loud. The people who need this are the ones who already
+        // registered, got nothing back, and have no reason to scroll a form
+        // they have already filled in — a muted text link goes unread by
+        // exactly the audience it is for.
+        <div className="rounded-2xl border border-brand/30 bg-brand/[0.07] p-5 shadow-[0_0_40px_-12px_rgba(92,214,215,0.25)] sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand/15">
+              <MailQuestion className="h-5 w-5 text-brand" aria-hidden="true" />
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-ink">Already registered but never got the email?</p>
+              <p className="mt-1 text-sm text-ink-2">
+                Some invites were lost to spam filters. Enter your email and we'll pull up your
+                group chat link right here.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="primary"
+              onClick={() => setOpen(true)}
+              className="shrink-0 sm:self-center"
+            >
+              Find my invite
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          </div>
+        </div>
       ) : (
         <motion.div
           initial={{ opacity: 0, y: -8 }}
