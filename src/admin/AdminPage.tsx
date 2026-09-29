@@ -2,12 +2,21 @@ import { useCallback, useEffect, useState } from 'react';
 import { Loader2, LogOut, RefreshCw, ShieldAlert } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { useAdminAuth } from '@/admin/useAdminAuth';
-import { countsByStatus, fetchMembers, markInviteSent, reviewMember } from '@/admin/adminService';
+import {
+  countsByStatus,
+  fetchMembers,
+  markAddedToChat,
+  markInviteSent,
+  reviewMember,
+  type QueueView,
+} from '@/admin/adminService';
 import { SignIn } from '@/admin/components/SignIn';
 import { MemberCard } from '@/admin/components/MemberCard';
-import type { MembersRow, MemberStatus } from '@/types/database';
+import { ToAddPanel } from '@/admin/components/ToAddPanel';
+import type { MembersRow } from '@/types/database';
 
-type Tab = MemberStatus | 'all';
+// 'to_add' has its own panel above the tabs rather than a tab of its own.
+type Tab = Exclude<QueueView, 'to_add'>;
 const TABS: { key: Tab; label: string }[] = [
   { key: 'pending', label: 'Pending' },
   { key: 'approved', label: 'Approved' },
@@ -20,20 +29,23 @@ export default function AdminPage() {
   const [tab, setTab] = useState<Tab>('pending');
   const [search, setSearch] = useState('');
   const [members, setMembers] = useState<MembersRow[]>([]);
-  const [counts, setCounts] = useState({ pending: 0, approved: 0, rejected: 0, awaitingInvite: 0 });
+  const [toAdd, setToAdd] = useState<MembersRow[]>([]);
+  const [counts, setCounts] = useState({ pending: 0, approved: 0, rejected: 0, awaitingInvite: 0, toAdd: 0 });
   const [listLoading, setListLoading] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setListLoading(true);
-    const [{ members: rows, error: err }, c] = await Promise.all([
+    const [{ members: rows, error: err }, pendingAdds, c] = await Promise.all([
       fetchMembers({ status: tab, search }),
+      fetchMembers({ status: 'to_add' }),
       countsByStatus(),
     ]);
     setMembers(rows);
+    setToAdd(pendingAdds.members);
     setCounts(c);
-    setError(err);
+    setError(err ?? pendingAdds.error);
     setListLoading(false);
   }, [tab, search]);
 
@@ -55,6 +67,14 @@ export default function AdminPage() {
   async function handleMarkInvited(id: string) {
     setBusyId(id);
     const { error: err } = await markInviteSent(id);
+    if (err) setError(err);
+    await load();
+    setBusyId(null);
+  }
+
+  async function handleMarkAdded(id: string) {
+    setBusyId(id);
+    const { error: err } = await markAddedToChat(id);
     if (err) setError(err);
     await load();
     setBusyId(null);
@@ -121,12 +141,13 @@ export default function AdminPage() {
           </div>
         </header>
 
-        <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-5">
           {[
             { label: 'Pending', value: counts.pending, accent: true },
             { label: 'Approved', value: counts.approved },
             { label: 'Declined', value: counts.rejected },
             { label: 'Awaiting invite', value: counts.awaitingInvite, accent: counts.awaitingInvite > 0 },
+            { label: 'To add to chat', value: counts.toAdd, accent: counts.toAdd > 0 },
           ].map((s) => (
             <div key={s.label} className="rounded-xl border border-line bg-surface/60 p-4">
               <p className="label-condensed text-[0.65rem] text-ink-4">{s.label}</p>
@@ -136,6 +157,8 @@ export default function AdminPage() {
             </div>
           ))}
         </div>
+
+        <ToAddPanel members={toAdd} busyId={busyId} onMarkAdded={handleMarkAdded} />
 
         <div className="mt-8 flex flex-wrap items-center gap-3">
           <div className="flex flex-wrap gap-1.5">
@@ -182,6 +205,7 @@ export default function AdminPage() {
                 member={m}
                 onReview={handleReview}
                 onMarkInvited={handleMarkInvited}
+                onMarkAdded={handleMarkAdded}
                 busy={busyId === m.id}
               />
             ))

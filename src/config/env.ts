@@ -6,9 +6,10 @@
  *
  * Note there is deliberately no community-chat link here. Registration is
  * reviewed first — the Nex team confirms the applicant really is a student
- * in Batangas and only then emails them the group chat invite. Shipping the
- * invite URL to the browser would hand it to everyone who opened the page,
- * which is exactly what the review step exists to prevent.
+ * in Batangas, then adds them to the group chat by hand from the Facebook
+ * profile they submit. There is no invite link to ship, and there should
+ * never be one in the browser bundle: it would hand the chat to everyone who
+ * opened the page, which is exactly what the review step exists to prevent.
  */
 
 function readEnv(key: string, fallback = ''): string {

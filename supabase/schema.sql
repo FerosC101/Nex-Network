@@ -15,8 +15,8 @@
 -- * Registration is REVIEWED, not instant. Every row lands as
 --   status='pending'. The Nex team confirms the applicant really is a
 --   student in Batangas, flips them to 'approved', and only then emails
---   the community group chat invite. The chat link lives with the team,
---   never in the client bundle.
+--   a link to submit their Facebook profile; the team then adds them to
+--   the group chat by hand. No invite link exists anywhere.
 -- * `auth_user_id` is a forward-looking, nullable anchor. Nothing uses it
 --   yet, but it lets a future "claim your profile / log in" feature attach
 --   Supabase Auth to an existing registration without a schema rewrite.
@@ -77,7 +77,7 @@ create table if not exists public.members (
   consented_at timestamptz,
 
   -- Review workflow: the team verifies the applicant is a Batangas student
-  -- before the group chat invite is emailed out.
+  -- before the approval email goes out.
   status text not null default 'pending' check (
     status in ('pending', 'approved', 'rejected')
   ),
@@ -86,13 +86,29 @@ create table if not exists public.members (
   review_notes text,
   invite_sent_at timestamptz,
 
+  -- One-off broadcasts, stamped per member so a run interrupted halfway can
+  -- resume without anyone being emailed twice. See supabase/community-migration.sql.
+  bumped_at timestamptz,
+  community_notified_at timestamptz,
+
+  -- The team adds approved members to the group chat by hand, from the
+  -- Facebook profile they submit on the site. See supabase/facebook-profile.sql.
+  facebook_url text,
+  facebook_submitted_at timestamptz,
+  added_to_chat_at timestamptz,
+
   -- Forward-looking, unused today — see design notes above
   auth_user_id uuid references auth.users (id) on delete set null
 );
 
 comment on table public.members is 'Nex Network community registrations — the core member record.';
-comment on column public.members.status is 'pending until the team verifies the applicant is a Batangas student; the group chat invite is emailed only on approved.';
-comment on column public.members.invite_sent_at is 'Set when the community group chat invite email has actually gone out — prevents double-sending.';
+comment on column public.members.status is 'pending until the team verifies the applicant is a Batangas student; the approval email goes out only on approved.';
+comment on column public.members.invite_sent_at is 'Set when the approval email has actually gone out — prevents double-sending.';
+comment on column public.members.bumped_at is 'Set when the one-off "did you miss this?" invite follow-up has gone out — prevents double-sending.';
+comment on column public.members.facebook_url is 'Facebook profile link the approved member submitted, so the team can add them to the group chat.';
+comment on column public.members.facebook_submitted_at is 'When facebook_url was submitted. Set once; a second submission is refused so a guessed email cannot overwrite it.';
+comment on column public.members.added_to_chat_at is 'Set by the team in /admin once the member has actually been added to the group chat.';
+comment on column public.members.community_notified_at is 'Set when the Messenger Community migration announcement has actually gone out — prevents double-sending.';
 
 -- Fast "any of these tags" filtering for admin views and future matchmaking
 -- (e.g. "students interested in UI/UX", "students looking for testers").

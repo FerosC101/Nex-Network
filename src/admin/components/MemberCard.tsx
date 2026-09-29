@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Check, X, Copy, Mail, Loader2 } from 'lucide-react';
+import { Check, X, Copy, Mail, Loader2, ExternalLink, UserPlus } from 'lucide-react';
 import type { MembersRow } from '@/types/database';
 
 interface MemberCardProps {
   member: MembersRow;
   onReview: (id: string, status: 'approved' | 'rejected', notes?: string) => Promise<void>;
   onMarkInvited: (id: string) => Promise<void>;
+  onMarkAdded: (id: string) => Promise<void>;
   busy: boolean;
 }
 
@@ -25,11 +26,12 @@ const STATUS_STYLES: Record<string, string> = {
   rejected: 'border-red-400/30 bg-red-400/10 text-red-300',
 };
 
-export function MemberCard({ member, onReview, onMarkInvited, busy }: MemberCardProps) {
+export function MemberCard({ member, onReview, onMarkInvited, onMarkAdded, busy }: MemberCardProps) {
   const [notes, setNotes] = useState('');
   const [copied, setCopied] = useState(false);
   const name = [member.first_name, member.last_name].filter(Boolean).join(' ');
   const awaitingInvite = member.status === 'approved' && !member.invite_sent_at;
+  const toAdd = member.status === 'approved' && Boolean(member.facebook_url) && !member.added_to_chat_at;
 
   async function copyEmail() {
     await navigator.clipboard.writeText(member.email);
@@ -63,6 +65,7 @@ export function MemberCard({ member, onReview, onMarkInvited, busy }: MemberCard
         >
           {member.status}
           {awaitingInvite && ' · needs invite'}
+          {toAdd && ' · add to chat'}
         </span>
       </header>
 
@@ -150,6 +153,37 @@ export function MemberCard({ member, onReview, onMarkInvited, busy }: MemberCard
             <Mail className="h-3 w-3" />
             Mark invite sent
           </button>
+        </div>
+      )}
+
+      {member.facebook_url && (
+        <div className="mt-5 flex flex-wrap items-center gap-2 rounded-xl border border-line bg-void/60 p-3">
+          {/* Check the name on the profile against the registration before
+              adding: anyone who knows a member's email can submit this. */}
+          <a
+            href={member.facebook_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-w-0 flex-1 items-center gap-1.5 text-sm text-brand underline-offset-4 hover:underline"
+          >
+            <span className="truncate">{member.facebook_url.replace(/^https:\/\/(www\.)?/, '')}</span>
+            <ExternalLink className="h-3 w-3 shrink-0" aria-hidden="true" />
+          </a>
+          {member.added_to_chat_at ? (
+            <span className="text-xs text-ink-4">
+              Added {new Date(member.added_to_chat_at).toLocaleString()}
+            </span>
+          ) : (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onMarkAdded(member.id)}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-[#10171a] transition-colors hover:bg-brand-soft disabled:opacity-50"
+            >
+              {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserPlus className="h-3 w-3" />}
+              Mark added to chat
+            </button>
+          )}
         </div>
       )}
 

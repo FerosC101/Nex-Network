@@ -1,5 +1,10 @@
-// Supabase Edge Function — emails the community invite when a registration
-// is approved, then stamps invite_sent_at so nobody double-sends.
+// Supabase Edge Function — emails the approval when a registration is
+// approved, then stamps invite_sent_at so nobody double-sends.
+//
+// The email no longer carries a Messenger link. Those links kept dying and
+// could be forwarded to anyone once sent. Instead it sends the member to the
+// site, where they submit their Facebook profile and the team adds them to
+// the group chat by hand (see lookup-invite and supabase/facebook-profile.sql).
 //
 // Runs on Deno, not in the app bundle. Deploy with:
 //   supabase functions deploy send-invite --no-verify-jwt
@@ -18,13 +23,11 @@
 // the sender, so SPF/DKIM/DMARC all align. Sending as @gmail.com through a
 // third-party provider does not align, and tends to land in spam.
 //
-// Always required:
-//   NEX_INVITE_LINK  the Messenger group chat link — deliberately a secret,
-//                    never committed and never shipped to the browser
+// Also used:
 //   SENDER_EMAIL     the "from" address (match SMTP_USER when using Gmail)
 //   WEBHOOK_SECRET   shared secret the database trigger sends in a header
-//   SITE_URL         optional, origin serving the email images
-//                    (default https://nex-network.vercel.app)
+//   SITE_URL         optional, origin of the site the email links to and
+//                    serves its images from (default https://nex-network.vercel.app)
 //
 // SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are injected automatically.
 
@@ -52,23 +55,31 @@ const json = (body: unknown, status = 200) =>
   });
 
 /**
+ * Where the email sends people: the "Find my invite" box, opened and already
+ * looked up for this address, so an approved member lands on the Facebook
+ * form with nothing to type but the profile link.
+ */
+function profileFormUrl(site: string, email: string) {
+  return `${site}/?find=${encodeURIComponent(email)}#find-invite`;
+}
+
+/**
  * A deliberately plain alternative, off by default.
  *
- * Mail from a personal Gmail account carrying an m.me invite link already
- * looks like phishing to a filter; wrapping it in a designed template with
- * remote images and a CTA button pushes it further. This reads like a note a
- * person typed, which is what it actually is — and what Gmail's own
- * infrastructure is least suspicious of.
+ * Mail from a personal Gmail account wrapped in a designed template with
+ * remote images and a CTA button looks more like marketing to a filter. This
+ * reads like a note a person typed, which is what it actually is — and what
+ * Gmail's own infrastructure is least suspicious of.
  *
  * Set EMAIL_STYLE=plain to use it if spam placement becomes a real problem.
  */
-function plainInvite(name: string, link: string, contact: string) {
+function plainInvite(name: string, formUrl: string, contact: string) {
   const safeName = name.replace(/[<>&]/g, '');
   const text =
     `Hi ${safeName},\n\n` +
     `You're in — we checked your details and you're now part of Nex Network, ` +
     `a community of student builders across Batangas.\n\n` +
-    `Here's the group chat:\n${link}\n\n` +
+    `To join the group chat, send us your Facebook profile here and we'll add you:\n${formUrl}\n\n` +
     `Introduce yourself when you join: what you're studying, what you're into, ` +
     `and anything you're building or want to build. That's usually all it takes ` +
     `for someone to find you.\n\n` +
@@ -82,20 +93,21 @@ function plainInvite(name: string, link: string, contact: string) {
       `font-size:15px;line-height:1.6;color:#222;">` +
       text
         .split('\n\n')
-        .map((para) => `<p>${para.replace(/\n/g, '<br>').replace(link, `<a href="${link}">${link}</a>`)}</p>`)
+        .map((para) =>
+          `<p>${para.split(formUrl).join(`<a href="${formUrl}">${formUrl}</a>`).replace(/\n/g, '<br>')}</p>`)
         .join('') +
       `</div>`,
   };
 }
 
-function brandedInvite(name: string, link: string, contact: string, site: string) {
+function brandedInvite(name: string, formUrl: string, contact: string, site: string) {
   const safeName = name.replace(/[<>&]/g, '');
   return {
     subject: 'Your Nex Network invite — welcome aboard',
     text:
       `Hi ${safeName},\n\n` +
       `You're in. We checked your details and you're now part of Nex Network — a community of student builders across Batangas.\n\n` +
-      `Here's the group chat:\n${link}\n\n` +
+      `To join the group chat, send us your Facebook profile here and we'll add you:\n${formUrl}\n\n` +
       `Introduce yourself when you join: what you're studying, what you're into, and anything you're building or want to build. That's usually all it takes for someone to find you.\n\n` +
       `No experience required. Just start.\n\n— Nex Network\n${contact}`,
     html: `<!doctype html>
@@ -121,16 +133,20 @@ function brandedInvite(name: string, link: string, contact: string, site: string
             You're in. We checked your details and you're now part of Nex Network — a community of
             student builders across Batangas.
           </p>
-          <p style="margin:0 0 24px;color:#4a4855;font-size:15px;line-height:1.65;">
-            Introduce yourself when you join: what you're studying, what you're into, and anything
-            you're building or want to build. That's usually all it takes for someone to find you.
+          <p style="margin:0 0 22px;color:#4a4855;font-size:15px;line-height:1.65;">
+            <strong style="color:#2b2a33;">One last step:</strong> send us your Facebook profile and
+            we'll add you to the group chat. It takes ten seconds.
           </p>
           <table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="border-radius:999px;background:#5cd6d7;">
-            <a href="${link}" style="display:inline-block;padding:14px 28px;color:#10171a;font-size:15px;font-weight:600;text-decoration:none;border-radius:999px;">Join the group chat →</a>
+            <a href="${formUrl}" style="display:inline-block;padding:14px 28px;color:#10171a;font-size:15px;font-weight:600;text-decoration:none;border-radius:999px;">Send my Facebook profile →</a>
           </td></tr></table>
+          <p style="margin:22px 0 0;color:#4a4855;font-size:15px;line-height:1.65;">
+            Once you're in, introduce yourself: what you're studying, what you're into, and anything
+            you're building or want to build. That's usually all it takes for someone to find you.
+          </p>
           <p style="margin:24px 0 0;color:#8b8794;font-size:13px;line-height:1.6;">
             If the button doesn't work, use this link:<br>
-            <a href="${link}" style="color:#2a9d9e;word-break:break-all;">${link}</a>
+            <a href="${formUrl}" style="color:#2a9d9e;word-break:break-all;">${formUrl}</a>
           </p>
         </td></tr>
         <tr><td style="padding:20px 32px 28px;border-top:1px solid #eceaf0;">
@@ -189,27 +205,17 @@ Deno.serve(async (req) => {
   const resendKey = Deno.env.get('RESEND_API_KEY');
   const smtpUser = Deno.env.get('SMTP_USER');
   const smtpPassword = Deno.env.get('SMTP_PASSWORD');
-  const link = Deno.env.get('NEX_INVITE_LINK');
   const sender = Deno.env.get('SENDER_EMAIL') ?? smtpUser;
   const contact = Deno.env.get('CONTACT_EMAIL') ?? sender ?? '';
   const canSend = (smtpUser && smtpPassword) || resendKey;
-  if (!canSend || !link || !sender) {
+  if (!canSend || !sender) {
     return json({ error: 'function secrets not configured' }, 500);
   }
 
-  // Refuse to send rather than deliver a dead invite. A placeholder left in
-  // NEX_INVITE_LINK still "works" everywhere else — the email sends, the row
-  // gets stamped — but the button does nothing and the fallback text vanishes,
-  // because angle brackets are parsed as an HTML tag. Failing here keeps the
-  // row in "Awaiting invite" instead of silently stranding someone.
-  if (!/^https:\/\//.test(link) || /[<>]/.test(link)) {
-    console.error('NEX_INVITE_LINK is not a usable https URL:', link);
-    return json({ error: 'invite link is not a valid https URL' }, 500);
-  }
-
   // Absolute URLs are required in email; keep the origin configurable so a
-  // custom domain later doesn't silently break every image.
+  // custom domain later doesn't silently break every image and link.
   const site = (Deno.env.get('SITE_URL') ?? 'https://nex-network.vercel.app').replace(/\/$/, '');
+  const formUrl = profileFormUrl(site, row.email);
   const name = row.preferred_name?.trim() || row.first_name;
   // Branded by default: the team would rather send the designed email and
   // tell students to check spam than send a plainer one that lands better.
@@ -218,8 +224,8 @@ Deno.serve(async (req) => {
   // placement ever costs more than the polish is worth.
   const mail =
     Deno.env.get('EMAIL_STYLE') === 'plain'
-      ? plainInvite(name, link, contact)
-      : brandedInvite(name, link, contact, site);
+      ? plainInvite(name, formUrl, contact)
+      : brandedInvite(name, formUrl, contact, site);
 
   // On any failure, leave invite_sent_at null so the row stays in "Awaiting
   // invite" in the admin UI and can be sent by hand. Failing loudly beats a

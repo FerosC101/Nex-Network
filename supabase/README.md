@@ -13,7 +13,7 @@ Until these are set, the app still runs — the registration form detects the mi
 
 Every registration inserts as `status = 'pending'`. The RLS policy enforces this — a tampered client **cannot** self-approve, because the insert policy requires `status = 'pending'`, `reviewed_at is null`, and `invite_sent_at is null`.
 
-The team's job is to verify the applicant really is a student in Batangas, then email them the group chat invite.
+The team's job is to verify the applicant really is a student in Batangas, then approve them. The approval email asks for their Facebook profile, and the team adds them to the group chat from the **To add** tab in `/admin`.
 
 ```sql
 -- The queue: who's waiting, oldest first

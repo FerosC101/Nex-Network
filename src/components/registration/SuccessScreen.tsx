@@ -15,8 +15,8 @@ const STEPS = [
   },
   {
     icon: MailCheck,
-    title: 'We email you the group chat',
-    body: `Once you're verified, your invite lands in your inbox — usually within ${env.reviewWindow}.`,
+    title: 'You send us your Facebook',
+    body: `Once you're verified — usually within ${env.reviewWindow} — we email you a link to share your profile, and we add you to the group chat.`,
   },
   {
     icon: Sparkles,

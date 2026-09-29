@@ -2,7 +2,7 @@
 // never have received their invite, because Gmail was silently dropping and
 // deferring mail before the move to Brevo.
 //
-// Scoped to status='approved' on purpose. The group chat link is the thing
+// Scoped to status='approved' on purpose. The community link is the thing
 // the whole review step exists to protect, so it must never go to someone
 // pending or declined.
 //
@@ -24,10 +24,10 @@ function bumpEmail(name: string, link: string, contact: string, site: string) {
   const safeName = name.replace(/[<>&]/g, '');
   const text =
     `Hi ${safeName},\n\n` +
-    `You joined Nex Network a little while ago and we sent your group chat invite — ` +
+    `You joined Nex Network a little while ago and we sent your community invite — ` +
     `but our emails were having delivery trouble, so there's a good chance it never ` +
     `reached you.\n\n` +
-    `If you're already in the chat, you can ignore this.\n\n` +
+    `If you're already in, you can ignore this.\n\n` +
     `If not, here's the link:\n${link}\n\n` +
     `Introduce yourself when you join: what you're studying, what you're into, and ` +
     `anything you're building or want to build.\n\n` +
@@ -35,7 +35,7 @@ function bumpEmail(name: string, link: string, contact: string, site: string) {
     `- Nex Network\n${contact}`;
 
   return {
-    subject: 'Your Nex group chat invite (in case you missed it)',
+    subject: 'Your Nex community invite (in case you missed it)',
     text,
     html: `<!doctype html>
 <html><body style="margin:0;padding:0;background:#f4f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
@@ -53,16 +53,16 @@ function bumpEmail(name: string, link: string, contact: string, site: string) {
         <tr><td style="padding:28px 32px;">
           <p style="margin:0 0 16px;color:#2b2a33;font-size:16px;line-height:1.6;">Hi ${safeName},</p>
           <p style="margin:0 0 16px;color:#4a4855;font-size:15px;line-height:1.65;">
-            You joined Nex Network a little while ago and we sent your group chat invite —
+            You joined Nex Network a little while ago and we sent your community invite —
             but our emails were having delivery trouble, so there's a good chance it never
             reached you.
           </p>
           <p style="margin:0 0 20px;color:#4a4855;font-size:15px;line-height:1.65;">
-            <strong>If you're already in the chat, you can ignore this.</strong> If not,
+            <strong>If you're already in, you can ignore this.</strong> If not,
             here's the link:
           </p>
           <table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="border-radius:999px;background:#5cd6d7;">
-            <a href="${link}" style="display:inline-block;padding:14px 28px;color:#10171a;font-size:15px;font-weight:600;text-decoration:none;border-radius:999px;">Join the group chat →</a>
+            <a href="${link}" style="display:inline-block;padding:14px 28px;color:#10171a;font-size:15px;font-weight:600;text-decoration:none;border-radius:999px;">Join the community →</a>
           </td></tr></table>
           <p style="margin:20px 0 0;color:#8b8794;font-size:13px;line-height:1.6;">
             If the button doesn't work:<br>

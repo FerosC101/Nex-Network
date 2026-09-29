@@ -1,11 +1,15 @@
 # Auto-send the invite on approval
 
 When an admin approves a registration at `/admin`, a database trigger posts the
-row to the `send-invite` Edge Function, which emails the Messenger link and
-stamps `invite_sent_at`.
+row to the `send-invite` Edge Function, which emails the approval and stamps
+`invite_sent_at`.
 
-The invite link lives as a **function secret**, not in this repo and not in the
-browser bundle — the same reason the review step exists at all.
+The email carries **no chat link**. Its button opens the site's "Find my
+invite" box already looked up for that address (`/?find=<email>#find-invite`),
+where the member submits their Facebook profile through `lookup-invite`. The
+team then adds them to the group chat by hand from the **To add** tab in
+`/admin` and presses *Mark added to chat*. See [Facebook profiles](#facebook-profiles-instead-of-an-invite-link)
+below.
 
 If the send fails, `invite_sent_at` stays null, the row keeps showing under
 **Awaiting invite** in `/admin`, and you can send it by hand and press
@@ -53,7 +57,6 @@ supabase secrets set \
   SMTP_PASSWORD="the 16-char app password" \
   SENDER_EMAIL="nexnetwork.community@gmail.com" \
   CONTACT_EMAIL="nexnetwork.community@gmail.com" \
-  NEX_INVITE_LINK="<the Messenger invite link — see team/approval-email.md>" \
   WEBHOOK_SECRET="$(openssl rand -hex 32)"
 ```
 
@@ -184,3 +187,183 @@ Secret keys: `1x0000000000000000000000000000000AA` (pass),
 If Turnstile causes trouble, clear `VITE_TURNSTILE_SITE_KEY` in Vercel and
 redeploy — the direct path resumes. If you already ran step 4, re-create the
 insert policy using the statement at the bottom of `lock-down-insert.sql`.
+
+---
+
+# Facebook profiles instead of an invite link
+
+Messenger invite links stopped working, and a link that did work could be
+forwarded to anyone once it left our hands. So nobody is sent a link any more:
+approved members submit their Facebook profile and the team adds them.
+
+## Rolling it out
+
+1. Run `supabase/facebook-profile.sql` in the SQL editor (adds `facebook_url`,
+   `facebook_submitted_at`, `added_to_chat_at`).
+2. Deploy both functions:
+
+   ```bash
+   supabase functions deploy lookup-invite --no-verify-jwt
+   supabase functions deploy send-invite --no-verify-jwt
+   ```
+
+3. Push the site (Vercel) so the form and the **To add** tab exist.
+4. Remove the dead links: `supabase secrets unset NEX_INVITE_LINK NEX_CHAT_LINK`.
+   `send-invite` and `lookup-invite` no longer read them. `send-bump` and
+   `send-community` still do, which is intended: with the secret gone they
+   refuse to run instead of mailing out a dead link.
+
+Order matters for steps 1–2. Without the columns every profile submission
+fails, and the new email would send people to a form that can't save.
+
+## Working the list
+
+Open `/admin` → **To add**. Each card shows the profile link — open it,
+**check the name and photo match the registration**, add them to the group
+chat in Messenger, then press *Mark added to chat*.
+
+The name check is the one real safeguard left. The site identifies someone only
+by the email they type, so anyone who knows an approved member's address could
+submit a profile in their name. A profile can be submitted only once, so an
+impostor cannot overwrite a real one, but they can get there first. If a
+profile doesn't match, don't add it; clear it so the real member can resubmit:
+
+```sql
+update members
+set facebook_url = null, facebook_submitted_at = null
+where email = 'them@example.com';
+```
+
+The same query fixes a member who pasted the wrong profile and emailed in.
+
+## Members approved before the switch
+
+Anyone approved earlier was sent a Messenger link that no longer works. They
+can use the "Find my invite" box on the site today. To tell them, point them
+at `https://nex-network.vercel.app/#find-invite`; there is no automated
+resend yet.
+
+---
+
+# The move to a Messenger Community
+
+`send-community` is the one-off announcement that Nex has outgrown the group
+chat and is moving to a Messenger Community, with a thank-you for passing
+**250+ members across 19 schools**.
+
+It is not wired to a trigger — it is invoked by hand, once, and stamps
+`community_notified_at` on each member as it sends so a re-run never emails
+anybody twice.
+
+## Setup
+
+**1. Point every path at the Community.** The link is one secret shared by
+`send-invite` (approval), `send-bump` and `lookup-invite` (the "find my
+invite" box on the site), so this single change moves all of them:
+
+```bash
+supabase secrets set NEX_INVITE_LINK="<the Community link — see team/approval-email.md>"
+```
+
+Nothing needs redeploying: functions read secrets at request time.
+
+**2. Add the stamp column** — run `supabase/community-migration.sql` in the
+SQL editor. A `testTo` preview works without it, deliberately; the dry run and
+the real send do not, because both read `community_notified_at`.
+
+**3. Deploy**
+
+```bash
+supabase functions deploy send-community --no-verify-jwt
+```
+
+## Sending
+
+Every call needs the `x-webhook-secret` header. Set `$FN` and `$SECRET` first:
+
+```bash
+FN=https://kbtjvnytsmutwkrmycnw.supabase.co/functions/v1/send-community
+SECRET="<WEBHOOK_SECRET>"
+```
+
+**Dry run first** — this is the default, so an accidental call sends nothing.
+It reports the recipient list and the rendered text (needs the column):
+
+```bash
+curl -s -X POST "$FN" -H "x-webhook-secret: $SECRET" \
+  -H 'Content-Type: application/json' -d '{"dryRun":true}'
+```
+
+**Send one copy to yourself** and read it on a phone, which is where it will
+actually be opened. This path runs before the recipient query, so it works
+before the migration above has been applied:
+
+```bash
+curl -s -X POST "$FN" -H "x-webhook-secret: $SECRET" \
+  -H 'Content-Type: application/json' \
+  -d '{"testTo":"you@example.com"}'
+```
+
+**Then send for real, in batches of 25.** Repeat the *identical* call until
+`remaining` comes back `0`:
+
+```bash
+curl -s -X POST "$FN" -H "x-webhook-secret: $SECRET" \
+  -H 'Content-Type: application/json' \
+  -d '{"dryRun":false,"limit":25}'
+```
+
+There is no `offset`, deliberately. Each row is stamped the moment its send
+succeeds, so the query already excludes everyone reached and each call starts
+exactly where the last one stopped. Paging *on top of* that shrinking list
+would step past people and strand them for good once `remaining` hit zero.
+
+An address that fails is not stamped, so it stays in the list and is retried
+on the next call. A permanently bad address therefore occupies one slot in
+every batch — visible in `failures`, and worth deleting or correcting once you
+have seen it fail twice.
+
+## Letting the database do the batching
+
+259 members at 25 an hour is a ten-hour job, which is a long time to keep a
+terminal open. `supabase/community-batch-cron.sql` schedules the same call from
+Postgres with pg_cron instead.
+
+This is the right place for it: the webhook secret is already in this database
+(`auto-invite.sql` posts it on every approval), so scheduling here means the
+secret is never copied somewhere new — which ruled out a cloud agent, since the
+file holding it is gitignored and the repo is public.
+
+Fill in the secret, run it in the SQL editor, then watch it:
+
+```sql
+select * from cron.job_run_details
+where jobname = 'nex-community-migration'
+order by start_time desc limit 10;
+
+select count(*) from members
+where status = 'approved' and community_notified_at is null;
+```
+
+When that count reaches zero, stop it:
+
+```sql
+select cron.unschedule('nex-community-migration');
+```
+
+Leaving it running is harmless — the query returns nobody and the batch sends
+nothing — but an hourly no-op in the logs is noise you don't need.
+
+## Sending limits
+
+`SMTP_HOST` is Brevo's relay, whose free tier allows **300 messages a day**.
+A full migration run is 259, so it fits, but with little room left for that
+day's approval emails. If you are also working through a review queue, spread
+the migration across two days by unscheduling the cron job partway.
+
+## Updating the numbers
+
+`MEMBER_COUNT` and `SCHOOL_COUNT` are constants at the top of
+`send-community/index.ts`. They are deliberately not counted from `members` —
+that table holds registrations at every status, so a live count would quietly
+disagree with the figure the team has been using publicly.

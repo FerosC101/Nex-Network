@@ -14,7 +14,8 @@
 /**
  * Where a registration sits in the review queue. Rows are created as
  * 'pending'; the Nex team verifies the applicant is a Batangas student
- * before flipping to 'approved' and emailing the group chat invite.
+ * before flipping to 'approved' and emailing them the link to submit their
+ * Facebook profile for the group chat.
  */
 export type MemberStatus = 'pending' | 'approved' | 'rejected';
 
@@ -49,13 +50,19 @@ export type MembersRow = {
   reviewed_by: string | null;
   review_notes: string | null;
   invite_sent_at: string | null;
+  facebook_url: string | null;
+  facebook_submitted_at: string | null;
+  added_to_chat_at: string | null;
   auth_user_id: string | null;
 };
 
-export type MembersInsert = Omit<MembersRow, 'id' | 'created_at'> & {
+// The Facebook columns are filled in after approval, never at registration.
+type PostApprovalColumns = 'facebook_url' | 'facebook_submitted_at' | 'added_to_chat_at';
+
+export type MembersInsert = Omit<MembersRow, 'id' | 'created_at' | PostApprovalColumns> & {
   id?: string;
   created_at?: string;
-};
+} & Partial<Pick<MembersRow, PostApprovalColumns>>;
 
 export type Database = {
   public: {

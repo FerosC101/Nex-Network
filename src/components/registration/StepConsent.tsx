@@ -24,7 +24,8 @@ export function StepConsent({ onCaptchaToken }: StepConsentProps) {
         <Mail className="mt-0.5 h-4.5 w-4.5 shrink-0 text-brand" aria-hidden="true" />
         <p className="text-sm leading-relaxed text-ink-2">
           We review every registration to make sure Nex stays a community of students from Batangas. Once
-          you're verified, we'll email you the invite to our community group chat.
+          you're verified, we'll email you a link to send us your Facebook profile, and we'll add you
+          to the group chat.
         </p>
       </div>
 

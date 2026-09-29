@@ -1,35 +1,64 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, Clock, Loader2, MailQuestion, SearchX } from 'lucide-react';
+import { ArrowRight, CircleCheck, Clock, Loader2, MailQuestion, SearchX, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { TextField } from '@/components/ui/TextField';
 import { env } from '@/config/env';
-import { lookupInvite, type InviteLookup as LookupResult } from '@/services/inviteLookupService';
+import {
+  lookupInvite,
+  submitFacebookProfile,
+  type InviteLookup as LookupResult,
+} from '@/services/inviteLookupService';
 
 /**
- * Recovery path for people who registered but never got their invite email.
+ * Where a registered student checks their status and, once approved, sends us
+ * their Facebook profile so the team can add them to the group chat.
  *
- * Email is lossy — invites land in spam, get deleted, or are dropped outright
- * by the receiving provider. Before this, the only way back in was messaging
- * the team by hand.
+ * The approval email links straight here as `/?find=<email>#find-invite`, which
+ * opens the box and runs the lookup, so an approved member lands directly on
+ * the Facebook form. It also stays the recovery path for anyone whose email
+ * went to spam.
  */
 export function InviteLookup() {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [result, setResult] = useState<LookupResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  async function runLookup(address: string) {
+    setIsLoading(true);
+    setResult(null);
+    setResult(await lookupInvite(address));
+    setIsLoading(false);
+  }
+
+  // Arriving from the approval email: open, fill in, look up, scroll here.
+  // The address is then removed from the URL so it isn't left in history or
+  // passed along if the page is shared.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const fromEmail = params.get('find')?.trim();
+    if (!fromEmail) return;
+
+    params.delete('find');
+    const query = params.toString();
+    window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`);
+
+    setOpen(true);
+    setEmail(fromEmail);
+    void runLookup(fromEmail);
+    requestAnimationFrame(() => containerRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' }));
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!email.trim() || isLoading) return;
-    setIsLoading(true);
-    setResult(null);
-    setResult(await lookupInvite(email.trim()));
-    setIsLoading(false);
+    await runLookup(email.trim());
   }
 
   return (
-    <div className="mx-auto mt-6 max-w-xl">
+    <div id="find-invite" ref={containerRef} className="mx-auto mt-6 max-w-xl scroll-mt-24">
       {!open ? (
         // Deliberately loud. The people who need this are the ones who already
         // registered, got nothing back, and have no reason to scroll a form
@@ -41,10 +70,10 @@ export function InviteLookup() {
               <MailQuestion className="h-5 w-5 text-brand" aria-hidden="true" />
             </div>
             <div className="flex-1">
-              <p className="font-semibold text-ink">Already registered but never got the email?</p>
+              <p className="font-semibold text-ink">Already registered?</p>
               <p className="mt-1 text-sm text-ink-2">
-                Some invites were lost to spam filters. Enter your email and we'll pull up your
-                group chat link right here.
+                Check your status with your email. Once you're approved, send us your Facebook
+                profile and we'll add you to the group chat.
               </p>
             </div>
             <Button
@@ -67,7 +96,7 @@ export function InviteLookup() {
         >
           <h3 className="text-lg font-semibold text-ink">Find your invite</h3>
           <p className="mt-1.5 text-sm text-ink-3">
-            Enter the email you registered with and we'll pull up your group chat link.
+            Enter the email you registered with to check where you are.
           </p>
 
           <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-start">
@@ -116,23 +145,7 @@ export function InviteLookup() {
                 aria-live="polite"
               >
                 {result.status === 'approved' && (
-                  <div className="rounded-xl border border-brand/30 bg-brand/10 p-5">
-                    <p className="text-sm font-medium text-brand">
-                      {result.name ? `You're in, ${result.name}. ⚡` : "You're in. ⚡"}
-                    </p>
-                    <p className="mt-1.5 text-sm text-ink-2">
-                      Here's your group chat link — see you in there.
-                    </p>
-                    <a
-                      href={result.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-void transition-opacity hover:opacity-90"
-                    >
-                      Open the group chat
-                      <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                    </a>
-                  </div>
+                  <ApprovedPanel email={email.trim()} result={result} onResult={setResult} />
                 )}
 
                 {result.status === 'pending' && (
@@ -141,8 +154,8 @@ export function InviteLookup() {
                     <div>
                       <p className="text-sm font-medium text-ink">You're registered — still under review.</p>
                       <p className="mt-1 text-sm text-ink-3">
-                        Someone on the team is checking your details. Your invite arrives by email
-                        once you're verified, usually within {env.reviewWindow}.
+                        Someone on the team is checking your details. We'll email you once you're
+                        verified, usually within {env.reviewWindow}.
                       </p>
                     </div>
                   </div>
@@ -170,6 +183,117 @@ export function InviteLookup() {
           </AnimatePresence>
         </motion.div>
       )}
+    </div>
+  );
+}
+
+type Approved = Extract<LookupResult, { status: 'approved' }>;
+
+/**
+ * The approved state: the Facebook form, or where things stand once it's in.
+ */
+function ApprovedPanel({
+  email,
+  result,
+  onResult,
+}: {
+  email: string;
+  result: Approved;
+  onResult: (r: LookupResult) => void;
+}) {
+  const [facebookUrl, setFacebookUrl] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const greeting = result.name ? `You're in, ${result.name}. ⚡` : "You're in. ⚡";
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!facebookUrl.trim() || isSaving) return;
+    setIsSaving(true);
+    setError(null);
+    const next = await submitFacebookProfile(email, facebookUrl.trim());
+    setIsSaving(false);
+    // Validation errors stay on the form so the paste can be fixed in place.
+    if (next.status === 'error') setError(next.message);
+    else onResult(next);
+  }
+
+  if (result.addedToChat) {
+    return (
+      <div className="flex gap-3 rounded-xl border border-brand/30 bg-brand/10 p-5">
+        <CircleCheck className="mt-0.5 h-5 w-5 shrink-0 text-brand" aria-hidden="true" />
+        <div>
+          <p className="text-sm font-medium text-brand">{greeting}</p>
+          <p className="mt-1.5 text-sm text-ink-2">
+            You've already been added to the group chat. Check your Messenger chats — and your
+            message requests, if you don't see it.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (result.facebookSubmitted) {
+    return (
+      <div className="flex gap-3 rounded-xl border border-brand/30 bg-brand/10 p-5">
+        <CircleCheck className="mt-0.5 h-5 w-5 shrink-0 text-brand" aria-hidden="true" />
+        <div>
+          <p className="text-sm font-medium text-brand">
+            {result.justSubmitted ? 'Got it, thanks!' : greeting}
+          </p>
+          <p className="mt-1.5 text-sm text-ink-2">
+            We have your Facebook profile. Someone on the team will add you to the group chat
+            soon — keep an eye on Messenger, including message requests.
+          </p>
+          <p className="mt-2 text-xs text-ink-3">
+            Sent the wrong profile? Email{' '}
+            <a href={`mailto:${env.contactEmail}`} className="text-brand underline-offset-4 hover:underline">
+              {env.contactEmail}
+            </a>{' '}
+            and we'll fix it.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-brand/30 bg-brand/10 p-5">
+      <p className="text-sm font-medium text-brand">{greeting}</p>
+      <p className="mt-1.5 text-sm text-ink-2">
+        Send us your Facebook profile and we'll add you to the Nex group chat.
+      </p>
+
+      <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3" noValidate>
+        <TextField
+          label="Facebook profile link"
+          type="url"
+          inputMode="url"
+          autoComplete="url"
+          maxLength={300}
+          // Profile IDs contain long runs of zeros (100000…), which the
+          // default anti-spam limit would silently collapse.
+          maxConsecutive={30}
+          placeholder="facebook.com/your.name"
+          hint="On Facebook, open your profile, tap ⋯ → Copy link, and paste it here."
+          error={error ?? undefined}
+          value={facebookUrl}
+          onChange={(e) => setFacebookUrl(e.target.value)}
+        />
+        <Button type="submit" variant="primary" disabled={isSaving || !facebookUrl.trim()}>
+          {isSaving ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              Sending…
+            </>
+          ) : (
+            <>
+              <UserPlus className="h-4 w-4" aria-hidden="true" />
+              Add me to the group chat
+            </>
+          )}
+        </Button>
+      </form>
     </div>
   );
 }

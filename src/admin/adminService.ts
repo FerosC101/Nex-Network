@@ -10,8 +10,11 @@ import type { MembersRow, MemberStatus } from '@/types/database';
  * convenience; the database is the actual boundary.
  */
 
+/** 'to_add': sent a Facebook profile, not yet added to the group chat. */
+export type QueueView = MemberStatus | 'all' | 'to_add';
+
 export interface QueueFilters {
-  status?: MemberStatus | 'all';
+  status?: QueueView;
   search?: string;
 }
 
@@ -19,8 +22,18 @@ export async function fetchMembers({ status = 'pending', search = '' }: QueueFil
   const supabase = getSupabaseClient();
   if (!supabase) return { members: [] as MembersRow[], error: 'Database not configured.' };
 
-  let query = supabase.from('members').select('*').order('created_at', { ascending: true });
-  if (status !== 'all') query = query.eq('status', status);
+  let query = supabase.from('members').select('*');
+  if (status === 'to_add') {
+    // Oldest submission first: whoever has waited longest gets added next.
+    query = query
+      .eq('status', 'approved')
+      .not('facebook_url', 'is', null)
+      .is('added_to_chat_at', null)
+      .order('facebook_submitted_at', { ascending: true });
+  } else {
+    query = query.order('created_at', { ascending: true });
+    if (status !== 'all') query = query.eq('status', status);
+  }
 
   const term = search.trim();
   if (term) {
@@ -39,9 +52,9 @@ export async function fetchMembers({ status = 'pending', search = '' }: QueueFil
 
 export async function countsByStatus() {
   const supabase = getSupabaseClient();
-  if (!supabase) return { pending: 0, approved: 0, rejected: 0, awaitingInvite: 0 };
+  if (!supabase) return { pending: 0, approved: 0, rejected: 0, awaitingInvite: 0, toAdd: 0 };
 
-  const [pending, approved, rejected, awaitingInvite] = await Promise.all([
+  const [pending, approved, rejected, awaitingInvite, toAdd] = await Promise.all([
     supabase.from('members').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
     supabase.from('members').select('id', { count: 'exact', head: true }).eq('status', 'approved'),
     supabase.from('members').select('id', { count: 'exact', head: true }).eq('status', 'rejected'),
@@ -50,6 +63,12 @@ export async function countsByStatus() {
       .select('id', { count: 'exact', head: true })
       .eq('status', 'approved')
       .is('invite_sent_at', null),
+    supabase
+      .from('members')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'approved')
+      .not('facebook_url', 'is', null)
+      .is('added_to_chat_at', null),
   ]);
 
   return {
@@ -57,6 +76,7 @@ export async function countsByStatus() {
     approved: approved.count ?? 0,
     rejected: rejected.count ?? 0,
     awaitingInvite: awaitingInvite.count ?? 0,
+    toAdd: toAdd.count ?? 0,
   };
 }
 
@@ -89,6 +109,19 @@ export async function markInviteSent(id: string) {
   const { error } = await supabase
     .from('members')
     .update({ invite_sent_at: new Date().toISOString() })
+    .eq('id', id);
+
+  return { error: error?.message ?? null };
+}
+
+/** Stamped once someone on the team has actually added them to the group chat. */
+export async function markAddedToChat(id: string) {
+  const supabase = getSupabaseClient();
+  if (!supabase) return { error: 'Database not configured.' };
+
+  const { error } = await supabase
+    .from('members')
+    .update({ added_to_chat_at: new Date().toISOString() })
     .eq('id', id);
 
   return { error: error?.message ?? null };

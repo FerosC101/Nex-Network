@@ -1,12 +1,16 @@
-// Supabase Edge Function — let an already-registered student look their own
-// invite link back up by email.
+// Supabase Edge Function — let a registered student check their status by
+// email and, once approved, send us their Facebook profile so the team can add
+// them to the group chat.
 //
-// This exists because email is a lossy channel. Invites land in spam, get
-// deleted, or (as happened before the move off Gmail) are silently dropped by
-// the receiving provider. Without this, the only recovery path is messaging
-// the team by hand.
+// It used to hand back a Messenger invite link. Those links kept dying and,
+// once out, could be forwarded to anyone, so the team now adds each member by
+// hand instead. The approval email points here (the "Find my invite" box).
 //
-// The link is only ever returned for status='approved'. Someone pending or
+// Two calls, both POST:
+//   { email }               status lookup
+//   { email, facebookUrl }  submit the profile — approved members only, once
+//
+// A profile is accepted only for status='approved'. Someone pending or
 // declined gets their status and nothing else — the review step is the whole
 // point of the system and this must not become a way around it.
 //
@@ -75,6 +79,77 @@ async function rateLimited(
   return (count ?? 0) >= MAX_PER_WINDOW;
 }
 
+const FACEBOOK_HOST = /^(?:(?:www|m|mobile|web)\.)?(?:facebook|fb)\.com$/i;
+
+// Top-level paths that are Facebook features rather than someone's profile.
+// Without this, a pasted group or post link would look like a username.
+const NOT_A_PROFILE = new Set([
+  'groups', 'pages', 'events', 'login', 'watch', 'marketplace', 'messages',
+  'gaming', 'reel', 'reels', 'stories', 'photo', 'photos', 'video', 'videos',
+  'home.php', 'photo.php', 'story.php', 'permalink.php', 'hashtag', 'search',
+  'friends', 'notifications', 'settings', 'help', 'policies', 'privacy',
+]);
+
+/**
+ * Turns whatever someone pastes into one canonical profile URL, or null.
+ *
+ * People copy their profile from wherever they happen to be — the app's
+ * "Copy link" gives /share/<code>, desktop gives /<username> or
+ * /profile.php?id=<n>, and mobile web gives m.facebook.com. All of those are
+ * fine. A group, post or reel link is not, and neither is anything that is not
+ * Facebook, since the team will open this link to find the person.
+ */
+function normalizeFacebookUrl(input: string): string | null {
+  const raw = input.trim();
+  if (!raw || raw.length > 300) return null;
+
+  // A bare username, e.g. "juan.delacruz". Facebook usernames are at least
+  // five letters, digits or dots.
+  if (/^[a-z0-9.]{5,50}$/i.test(raw) && !NOT_A_PROFILE.has(raw.toLowerCase())) {
+    return `https://www.facebook.com/${raw}`;
+  }
+
+  let url: URL;
+  try {
+    url = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
+  } catch {
+    return null;
+  }
+  if (!FACEBOOK_HOST.test(url.hostname)) return null;
+
+  const parts = url.pathname.split('/').filter(Boolean);
+  if (parts.length === 0) return null;
+
+  if (parts[0].toLowerCase() === 'profile.php') {
+    const id = url.searchParams.get('id');
+    return id && /^\d{5,20}$/.test(id) ? `https://www.facebook.com/profile.php?id=${id}` : null;
+  }
+
+  // The app's "Copy link to profile". Post, reel and video shares use
+  // /share/p/, /share/r/, /share/v/ — two segments — and are rejected.
+  if (parts[0].toLowerCase() === 'share') {
+    return parts.length === 2 && /^[a-z0-9_-]{4,40}$/i.test(parts[1])
+      ? `https://www.facebook.com/share/${parts[1]}/`
+      : null;
+  }
+
+  if (
+    parts[0].toLowerCase() === 'people' &&
+    parts.length >= 3 &&
+    /^[\w%.-]{1,100}$/.test(parts[1]) &&
+    /^\d{5,20}$/.test(parts[2])
+  ) {
+    return `https://www.facebook.com/people/${parts[1]}/${parts[2]}/`;
+  }
+
+  // /<username>, optionally followed by a tab like /about — keep the profile.
+  const username = parts[0];
+  if (/^[a-z0-9.]{5,50}$/i.test(username) && !NOT_A_PROFILE.has(username.toLowerCase())) {
+    return `https://www.facebook.com/${username}`;
+  }
+  return null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405);
@@ -86,9 +161,17 @@ Deno.serve(async (req) => {
 
   const body = await req.json().catch(() => ({}));
   const email = String(body?.email ?? '').trim().toLowerCase();
+  const isSubmission = typeof body?.facebookUrl === 'string';
 
   if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
     return json({ error: 'invalid_email' }, 400);
+  }
+
+  // Checked before touching the database so a bad paste costs nothing and
+  // the person gets told straight away what is wrong.
+  const facebookUrl = isSubmission ? normalizeFacebookUrl(body.facebookUrl) : null;
+  if (isSubmission && !facebookUrl) {
+    return json({ error: 'invalid_facebook_url' }, 400);
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -103,11 +186,12 @@ Deno.serve(async (req) => {
     return json({ error: 'too_many_requests' }, 429);
   }
 
-  // Only the columns this response can possibly need. No names, no phone
-  // numbers, nothing that would turn a guessed address into a data leak.
+  // Only the columns this response can possibly need. No names beyond the
+  // greeting, no phone numbers, and never the submitted profile itself —
+  // anyone can type an address in here.
   const { data, error } = await admin
     .from('members')
-    .select('status, preferred_name, first_name')
+    .select('id, status, preferred_name, first_name, facebook_url, added_to_chat_at')
     .ilike('email', email)
     .maybeSingle();
 
@@ -125,15 +209,36 @@ Deno.serve(async (req) => {
     return json({ status: 'pending' });
   }
 
-  const link = Deno.env.get('NEX_INVITE_LINK');
-  if (!link || !/^https:\/\//.test(link) || /[<>]/.test(link)) {
-    console.error('NEX_INVITE_LINK is not a usable https URL');
-    return json({ error: 'link_unavailable' }, 500);
+  const name = (data.preferred_name?.trim() || data.first_name) ?? null;
+
+  if (!isSubmission) {
+    return json({
+      status: 'approved',
+      name,
+      facebookSubmitted: Boolean(data.facebook_url),
+      addedToChat: Boolean(data.added_to_chat_at),
+    });
   }
 
-  return json({
-    status: 'approved',
-    name: (data.preferred_name?.trim() || data.first_name) ?? null,
-    link,
-  });
+  // Once only. Anyone who knows a member's email can reach this, so letting a
+  // second submission overwrite the first would let them swap in their own
+  // account. Corrections go through the team, who can see both.
+  const { data: updated, error: updateError } = await admin
+    .from('members')
+    .update({ facebook_url: facebookUrl, facebook_submitted_at: new Date().toISOString() })
+    .eq('id', data.id)
+    .eq('status', 'approved')
+    .is('facebook_url', null)
+    .select('id');
+
+  if (updateError) {
+    console.error('facebook submit failed', updateError.message);
+    return json({ error: 'submit_failed' }, 500);
+  }
+
+  if (!updated?.length) {
+    return json({ status: 'approved', name, facebookSubmitted: true, addedToChat: Boolean(data.added_to_chat_at), alreadySubmitted: true });
+  }
+
+  return json({ status: 'approved', name, facebookSubmitted: true, addedToChat: false, justSubmitted: true });
 });

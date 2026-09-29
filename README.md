@@ -9,9 +9,10 @@ Registration site for **Nex Network**, a student builder community connecting st
 1. A student fills out the multi-step registration form.
 2. The registration lands in the database as **`status = 'pending'`**.
 3. The Nex team reviews it and confirms the applicant really is a student in Batangas.
-4. On approval, the team **emails them the community group chat invite**.
+4. On approval, they're **emailed a link back to the site**, where they submit their **Facebook profile**.
+5. The team adds them to the group chat by hand from `/admin` (**To add** tab), then presses *Mark added to chat*.
 
-The group chat link is deliberately **never in this codebase**. Anything in a `VITE_*` variable is compiled into the public JS bundle and readable by every visitor — which would defeat the review step entirely. Keep the invite link in your mail tooling.
+There is deliberately **no chat invite link** anywhere — not in this codebase and not in the email. Messenger invite links kept breaking, and once sent they could be forwarded to anyone. Adding people by hand from their profile keeps the review step meaningful.
 
 ## Stack
 
