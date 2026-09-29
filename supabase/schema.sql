@@ -96,6 +96,7 @@ create table if not exists public.members (
   facebook_url text,
   facebook_submitted_at timestamptz,
   added_to_chat_at timestamptz,
+  relinked_at timestamptz,
 
   -- Forward-looking, unused today — see design notes above
   auth_user_id uuid references auth.users (id) on delete set null

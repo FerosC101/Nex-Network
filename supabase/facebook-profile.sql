@@ -12,7 +12,8 @@
 alter table public.members
   add column if not exists facebook_url text,
   add column if not exists facebook_submitted_at timestamptz,
-  add column if not exists added_to_chat_at timestamptz;
+  add column if not exists added_to_chat_at timestamptz,
+  add column if not exists relinked_at timestamptz;
 
 comment on column public.members.facebook_url is
   'Facebook profile link the approved member submitted, so the team can add them to the group chat.';
@@ -20,6 +21,9 @@ comment on column public.members.facebook_submitted_at is
   'When facebook_url was submitted. Set once; a second submission is refused so a guessed email cannot overwrite it.';
 comment on column public.members.added_to_chat_at is
   'Set by the team in /admin once the member has actually been added to the group chat.';
+
+comment on column public.members.relinked_at is
+  'Set when the one-off send-relink email (the dead-Messenger-link follow-up) has gone out — prevents double-sending.';
 
 -- The admin "To add" list: submitted, not yet added, oldest first.
 create index if not exists members_to_add_idx

@@ -238,10 +238,49 @@ The same query fixes a member who pasted the wrong profile and emailed in.
 
 ## Members approved before the switch
 
-Anyone approved earlier was sent a Messenger link that no longer works. They
-can use the "Find my invite" box on the site today. To tell them, point them
-at `https://nex-network.vercel.app/#find-invite`; there is no automated
-resend yet.
+Anyone approved earlier was sent a Messenger link that no longer works.
+`send-relink` emails the most recent of them (50 by default) a link to the
+Facebook form, with an apology and an "ignore this if you're already in".
+It skips anyone who has already sent a profile or been added, and stamps
+`relinked_at` as it sends, so re-running it never emails anyone twice.
+
+Only run it once the rollout above is complete. The email's button is useless
+until the site, the columns and `lookup-invite` are all live.
+
+```bash
+supabase functions deploy send-relink --no-verify-jwt
+
+FN=https://kbtjvnytsmutwkrmycnw.supabase.co/functions/v1/send-relink
+SECRET="<WEBHOOK_SECRET>"
+# When the new send-invite went live. Anyone approved after this already got
+# the new email. Use the SAME value on every call below: it pins the group.
+BEFORE="2026-09-29T00:00:00+08:00"
+```
+
+1. **Test copy to yourself**, and click the button on your phone:
+
+   ```bash
+   curl -s -X POST "$FN" -H "x-webhook-secret: $SECRET" \
+     -H 'Content-Type: application/json' -d '{"testTo":"you@example.com"}'
+   ```
+
+2. **Dry run.** This sends nothing and lists exactly who would get it:
+
+   ```bash
+   curl -s -X POST "$FN" -H "x-webhook-secret: $SECRET" -H 'Content-Type: application/json' \
+     -d "{\"dryRun\":true,\"approvedBefore\":\"$BEFORE\"}"
+   ```
+
+3. **Send, 25 per call.** Repeat the identical call until `remaining` is `0`:
+
+   ```bash
+   curl -s -X POST "$FN" -H "x-webhook-secret: $SECRET" -H 'Content-Type: application/json' \
+     -d "{\"dryRun\":false,\"approvedBefore\":\"$BEFORE\"}"
+   ```
+
+A failed address isn't stamped, so the next call retries it. Anyone outside
+the 50 can still use the "Find my invite" box at
+`https://nex-network.vercel.app/#find-invite`.
 
 ---
 
