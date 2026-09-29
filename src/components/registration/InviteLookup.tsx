@@ -263,6 +263,9 @@ function ApprovedPanel({
       <p className="mt-1.5 text-sm text-ink-2">
         Send us your Facebook profile and we'll add you to the Nex group chat.
       </p>
+      <p className="mt-1.5 text-xs text-ink-3">
+        Our Messenger invite link is down right now, so for the moment we're adding everyone by hand.
+      </p>
 
       <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3" noValidate>
         <TextField

@@ -79,7 +79,7 @@ function plainInvite(name: string, formUrl: string, contact: string) {
     `Hi ${safeName},\n\n` +
     `You're in — we checked your details and you're now part of Nex Network, ` +
     `a community of student builders across Batangas.\n\n` +
-    `To join the group chat, send us your Facebook profile here and we'll add you:\n${formUrl}\n\n` +
+    `Our Messenger invite link is down right now, so for the moment we're adding everyone to the group chat by hand. Send us your Facebook profile here and we'll add you:\n${formUrl}\n\n` +
     `Introduce yourself when you join: what you're studying, what you're into, ` +
     `and anything you're building or want to build. That's usually all it takes ` +
     `for someone to find you.\n\n` +
@@ -107,7 +107,7 @@ function brandedInvite(name: string, formUrl: string, contact: string, site: str
     text:
       `Hi ${safeName},\n\n` +
       `You're in. We checked your details and you're now part of Nex Network — a community of student builders across Batangas.\n\n` +
-      `To join the group chat, send us your Facebook profile here and we'll add you:\n${formUrl}\n\n` +
+      `Our Messenger invite link is down right now, so for the moment we're adding everyone to the group chat by hand. Send us your Facebook profile here and we'll add you:\n${formUrl}\n\n` +
       `Introduce yourself when you join: what you're studying, what you're into, and anything you're building or want to build. That's usually all it takes for someone to find you.\n\n` +
       `No experience required. Just start.\n\n— Nex Network\n${contact}`,
     html: `<!doctype html>
@@ -133,9 +133,13 @@ function brandedInvite(name: string, formUrl: string, contact: string, site: str
             You're in. We checked your details and you're now part of Nex Network — a community of
             student builders across Batangas.
           </p>
-          <p style="margin:0 0 22px;color:#4a4855;font-size:15px;line-height:1.65;">
+          <p style="margin:0 0 14px;color:#4a4855;font-size:15px;line-height:1.65;">
             <strong style="color:#2b2a33;">One last step:</strong> send us your Facebook profile and
             we'll add you to the group chat. It takes ten seconds.
+          </p>
+          <p style="margin:0 0 22px;padding:12px 14px;background:#f4f4f6;border-radius:10px;color:#6b6876;font-size:13px;line-height:1.6;">
+            Why not just a link? Our Messenger invite link is down right now, so for the moment
+            we're adding everyone to the group chat by hand.
           </p>
           <table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="border-radius:999px;background:#5cd6d7;">
             <a href="${formUrl}" style="display:inline-block;padding:14px 28px;color:#10171a;font-size:15px;font-weight:600;text-decoration:none;border-radius:999px;">Send my Facebook profile →</a>
