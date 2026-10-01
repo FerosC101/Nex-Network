@@ -49,7 +49,7 @@ export function Navbar() {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
-    const onResize = () => window.innerWidth >= 768 && setOpen(false);
+    const onResize = () => window.innerWidth >= 1024 && setOpen(false);
     window.addEventListener('keydown', onKey);
     window.addEventListener('resize', onResize);
     return () => {
@@ -80,13 +80,13 @@ export function Navbar() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.2 }}
-            className="label-condensed mr-auto -ml-3 text-[0.6rem] text-ink-3 md:hidden"
+            className="label-condensed mr-auto -ml-3 text-[0.6rem] text-ink-3 lg:hidden"
           >
             {CHAPTERS[chapter].number} / {CHAPTERS[chapter].label}
           </motion.span>
         </AnimatePresence>
 
-        <ul className="hidden items-center gap-1 md:flex">
+        <ul className="hidden items-center gap-1 lg:flex">
           {NAV_ITEMS.map((item) => (
             <li key={item.id}>
               <a
@@ -131,7 +131,7 @@ export function Navbar() {
             aria-expanded={open}
             aria-controls="mobile-menu"
             aria-label={open ? 'Close menu' : 'Open menu'}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-control border border-slate text-ink-2 transition-colors hover:text-ink md:hidden"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-control border border-slate text-ink-2 transition-colors hover:text-ink lg:hidden"
           >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -151,7 +151,7 @@ export function Navbar() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-          className="border-t border-line px-6 pb-6 md:hidden"
+          className="border-t border-line px-6 pb-6 lg:hidden"
         >
           <ul className="flex flex-col py-2">
             {[...NAV_ITEMS, { id: 'find-invite', label: 'Find my invite', chapter: -1 } as NavItem].map((item, i) => (
