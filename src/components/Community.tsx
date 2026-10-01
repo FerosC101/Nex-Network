@@ -7,6 +7,7 @@ import { Reveal } from '@/components/motion/Reveal';
 import { StickyTrack } from '@/components/story/StickyTrack';
 import { useProgressValue } from '@/components/story/useStep';
 import { ACTIVITIES } from '@/data/activities';
+import { useNexStats, type NexStats } from '@/services/statsService';
 import { INTERESTS } from '@/types/registration';
 
 // Real members, real photos. The first is alone on screen; the rest join it.
@@ -24,12 +25,16 @@ const THREADS: [number, number][] = [[0, 1], [0, 2], [0, 3], [0, 4], [1, 3], [2,
 
 const TAGS = INTERESTS.filter((i) => i !== 'Other');
 
-// The figures the team uses publicly; events are counted, not typed.
-const STATS = [
-  { value: 250, suffix: '+', label: 'student builders' },
-  { value: 19, suffix: '', label: 'schools across Batangas' },
-  { value: ACTIVITIES.length, suffix: '', label: ACTIVITIES.length === 1 ? 'event so far' : 'events so far' },
-];
+// Live counts from the database (members are approved members only); events
+// are counted from the Events chapter. Until the counts arrive — or if they
+// can't — the known lower bounds show with a "+".
+function statsFor({ members, schools, live }: NexStats) {
+  return [
+    { value: members, suffix: live ? '' : '+', label: 'student builders' },
+    { value: schools, suffix: live ? '' : '+', label: 'schools represented' },
+    { value: ACTIVITIES.length, suffix: '', label: ACTIVITIES.length === 1 ? 'event so far' : 'events so far' },
+  ];
+}
 
 function Face({ progress, i }: { progress: MotionValue<number>; i: number }) {
   const f = FACES[i];
@@ -67,7 +72,7 @@ function Thread({ progress, a, b, k }: { progress: MotionValue<number>; a: numbe
   );
 }
 
-function Scene({ progress }: { progress: MotionValue<number> }) {
+function Scene({ progress, stats }: { progress: MotionValue<number>; stats: ReturnType<typeof statsFor> }) {
   const titleOpacity = useTransform(progress, [0, 0.08], [0, 1]);
   const statsOpacity = useTransform(progress, [0.44, 0.52], [0, 1]);
   const statsY = useTransform(progress, [0.44, 0.52], [24, 0]);
@@ -98,12 +103,12 @@ function Scene({ progress }: { progress: MotionValue<number> }) {
           style={{ opacity: statsOpacity, y: statsY }}
           className="absolute top-1/2 left-1/2 z-20 grid w-[min(36rem,92%)] -translate-x-1/2 -translate-y-1/2 grid-cols-3 divide-x divide-line rounded-panel border border-line bg-void/85 py-6 shadow-lift backdrop-blur-xl"
         >
-          {STATS.map((s) => (
+          {stats.map((s) => (
             <div key={s.label} className="flex flex-col-reverse items-center px-3 text-center">
               <dt className="mt-1 text-xs text-ink-3">{s.label}</dt>
               <dd className="font-display text-3xl font-extrabold sm:text-5xl">
                 {statsIn ? (
-                  <CountUp value={s.value} suffix={s.suffix} className={s.suffix === '+' ? 'text-brand' : ''} />
+                  <CountUp value={s.value} suffix={s.suffix} className={s.label === 'student builders' ? 'text-brand' : ''} />
                 ) : (
                   <span className="tabular-nums">0</span>
                 )}
@@ -135,6 +140,7 @@ function Scene({ progress }: { progress: MotionValue<number> }) {
  * world-of-Nex sketch from chapter 02: same idea, now explorable.
  */
 export function Community() {
+  const stats = statsFor(useNexStats());
   return (
     <>
       <StickyTrack
@@ -153,7 +159,7 @@ export function Community() {
               ))}
             </div>
             <dl className="mt-10 grid grid-cols-3 gap-4">
-              {STATS.map((s) => (
+              {stats.map((s) => (
                 <div key={s.label} className="flex flex-col-reverse">
                   <dt className="text-sm text-ink-3">{s.label}</dt>
                   <dd className="font-display text-4xl font-extrabold">{s.value}{s.suffix}</dd>
@@ -168,7 +174,7 @@ export function Community() {
           </div>
         }
       >
-        {(progress) => <Scene progress={progress} />}
+        {(progress) => <Scene progress={progress} stats={stats} />}
       </StickyTrack>
 
       <Section id="network" className="overflow-hidden border-t border-line-soft">
