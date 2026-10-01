@@ -82,7 +82,6 @@
   }
 
   html {
-    scroll-behavior: smooth;
     color-scheme: dark;
     background: var(--color-void);
   }

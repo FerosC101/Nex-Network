@@ -29,8 +29,8 @@ function Scene({ progress }: { progress: MotionValue<number> }) {
   const logoY = useTransform(progress, [0, 0.5], [40, 0]);
   const headOpacity = useTransform(progress, [0.12, 0.2], [0, 1]);
   const headY = useTransform(progress, [0.12, 0.2], [24, 0]);
-  const joinOpacity = useTransform(progress, [0.7, 0.8], [0, 1]);
-  const joinScale = useTransform(progress, [0.7, 0.82], [0.9, 1]);
+  const joinOpacity = useTransform(progress, [0.5, 0.6], [0, 1]);
+  const joinScale = useTransform(progress, [0.5, 0.62], [0.9, 1]);
   const joinPointer = useTransform(joinOpacity, (v) => (v > 0.5 ? 'auto' : 'none'));
 
   return (

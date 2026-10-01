@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { MotionConfig } from 'framer-motion';
+import { installSectionLinks } from '@/lib/scrollToSection';
 import { Navbar } from '@/components/layout/Navbar';
 import { CursorFollower } from '@/components/layout/CursorFollower';
 import { ChapterIndicator } from '@/components/story/ChapterIndicator';
@@ -20,6 +22,8 @@ import { Footer } from '@/components/Footer';
  * renders as a plain, fully readable section instead.
  */
 export default function App() {
+  useEffect(() => installSectionLinks(), []);
+
   return (
     <MotionConfig reducedMotion="user">
       <div className="min-h-screen bg-void">

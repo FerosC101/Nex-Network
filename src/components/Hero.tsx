@@ -7,7 +7,7 @@ import { buttonClasses } from '@/components/ui/buttonStyles';
 // One word per beat, each with its own photograph behind it. The words share
 // a single position; the photos share the frame.
 const BEATS = [
-  { word: 'Connect.', photo: '/activities/aws-3.jpg' },
+  { word: 'Connect.', photo: '/activities/aws-1.jpg' },
   { word: 'Build.', photo: '/activities/code-golf-1.jpg' },
   { word: 'Grow.', photo: '/activities/aws-2.jpg' },
 ];
@@ -71,13 +71,13 @@ function Photo({ progress, index }: { progress: MotionValue<number>; index: numb
 }
 
 function Scene({ progress }: { progress: MotionValue<number> }) {
-  // The resolve: the big word gives way to the full line, copy, and CTAs.
+  // The resolve: the big word gives way to the full line and the copy. The
+  // buttons are not part of it — they're on screen from the first frame, so
+  // nobody has to scroll to find the way in.
   const lineOpacity = useTransform(progress, [WORDS_END + 0.06, WORDS_END + 0.16], [0, 1]);
   const lineY = useTransform(progress, [WORDS_END + 0.06, WORDS_END + 0.16], [30, 0]);
   const copyOpacity = useTransform(progress, [WORDS_END + 0.14, WORDS_END + 0.24], [0, 1]);
   const copyY = useTransform(progress, [WORDS_END + 0.14, WORDS_END + 0.24], [20, 0]);
-  const ctaOpacity = useTransform(progress, [WORDS_END + 0.2, WORDS_END + 0.3], [0, 1]);
-  const ctaPointer = useTransform(ctaOpacity, (v) => (v > 0.5 ? 'auto' : 'none'));
   // The photo darkens further as the copy arrives, keeping it readable.
   const scrim = useTransform(progress, [WORDS_END, WORDS_END + 0.15], [0.72, 0.86]);
   const cue = useTransform(progress, [0, 0.05], [1, 0]);
@@ -124,27 +124,27 @@ function Scene({ progress }: { progress: MotionValue<number> }) {
           Where students in Batangas discover opportunities, find people to build with, and turn ideas into
           something real.
         </motion.p>
-        <motion.div
-          style={{ opacity: ctaOpacity, pointerEvents: ctaPointer }}
-          className="mt-10 flex w-full max-w-sm flex-col gap-3 sm:w-auto sm:max-w-none sm:flex-row"
-        >
+      </div>
+
+      <div className="absolute inset-x-0 bottom-20 flex flex-col items-center px-6 sm:bottom-[13%]">
+        <div className="flex w-full max-w-sm flex-col gap-3 sm:w-auto sm:max-w-none sm:flex-row">
           <MagneticLink href="#register" className={`${buttonClasses('primary', 'lg')} group`}>
             Join Nex
             <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true" />
           </MagneticLink>
-          <MagneticLink href="#world" className={buttonClasses('secondary', 'lg')}>
+          <MagneticLink href="#community" className={buttonClasses('secondary', 'lg')}>
             Explore Community
           </MagneticLink>
-        </motion.div>
+        </div>
       </div>
 
       <motion.p
         aria-hidden="true"
         style={{ opacity: cue }}
-        className="label-condensed absolute bottom-8 flex flex-col items-center gap-3 text-[0.6rem] text-ink-3"
+        className="label-condensed absolute bottom-5 flex flex-col items-center gap-2 text-[0.6rem] text-ink-3"
       >
         Scroll
-        <span className="h-10 w-px bg-gradient-to-b from-brand to-transparent" />
+        <span className="h-6 w-px bg-gradient-to-b from-brand to-transparent" />
       </motion.p>
     </div>
   );
@@ -163,7 +163,7 @@ export function Hero() {
       ariaLabel="Nex Network"
       fallback={
         <div className="relative isolate flex min-h-svh flex-col items-center justify-center px-6 py-28 text-center">
-          <img src="/activities/aws-3.jpg" alt="" className="absolute inset-0 -z-10 h-full w-full object-cover" />
+          <img src="/activities/aws-1.jpg" alt="" className="absolute inset-0 -z-10 h-full w-full object-cover" />
           <div aria-hidden="true" className="absolute inset-0 -z-10 bg-void/85" />
           <img src="/nex-mark.png" alt="" width={56} height={56} />
           <p className="label-condensed mt-4 text-[0.7rem] tracking-[0.4em] text-ink-2">Nex Network</p>
@@ -176,7 +176,7 @@ export function Hero() {
           </p>
           <div className="mt-10 flex flex-col gap-3 sm:flex-row">
             <a href="#register" className={buttonClasses('primary', 'lg')}>Join Nex</a>
-            <a href="#world" className={buttonClasses('secondary', 'lg')}>Explore Community</a>
+            <a href="#community" className={buttonClasses('secondary', 'lg')}>Explore Community</a>
           </div>
         </div>
       }

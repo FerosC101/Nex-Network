@@ -4,7 +4,7 @@
  */
 export const CHAPTERS = [
   { number: '01', label: 'Intro', ids: ['top'] },
-  { number: '02', label: 'Community', ids: ['world', 'talent'] },
+  { number: '02', label: 'Community', ids: ['community', 'talent'] },
   { number: '03', label: 'Build', ids: ['enables', 'idea'] },
   { number: '04', label: 'Opportunities', ids: ['opportunities'] },
   { number: '05', label: 'Events', ids: ['events'] },

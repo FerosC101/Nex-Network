@@ -4,6 +4,7 @@ import { ArrowRight, CircleCheck, Clock, Loader2, MailQuestion, SearchX, UserPlu
 import { Button } from '@/components/ui/Button';
 import { TextField } from '@/components/ui/TextField';
 import { env } from '@/config/env';
+import { scrollToSection } from '@/lib/scrollToSection';
 import {
   lookupInvite,
   submitFacebookProfile,
@@ -48,7 +49,7 @@ export function InviteLookup() {
     setOpen(true);
     setEmail(fromEmail);
     void runLookup(fromEmail);
-    requestAnimationFrame(() => containerRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' }));
+    requestAnimationFrame(() => scrollToSection('find-invite'));
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {

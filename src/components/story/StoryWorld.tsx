@@ -154,7 +154,7 @@ function Scene({ progress }: { progress: MotionValue<number> }) {
 export function StoryWorld() {
   return (
     <StickyTrack
-      id="world"
+      id="community"
       screens={4}
       ariaLabel="The world of Nex"
       fallback={

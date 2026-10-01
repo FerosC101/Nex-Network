@@ -9,7 +9,7 @@ const COLUMNS = [
   {
     title: 'Nex',
     links: [
-      { label: 'Community', href: '#world' },
+      { label: 'Community', href: '#community' },
       { label: 'Build', href: '#enables' },
       { label: 'Opportunities (soon)', href: '#opportunities' },
       { label: 'Events', href: '#events' },

@@ -19,7 +19,7 @@ interface NavItem {
 // The story's chapters, as places to jump to. Opportunities is an honest
 // "coming soon" chapter, so it says so.
 const NAV_ITEMS: NavItem[] = [
-  { id: 'world', label: 'Community', chapter: 1 },
+  { id: 'community', label: 'Community', chapter: 1 },
   { id: 'enables', label: 'Build', chapter: 2 },
   { id: 'opportunities', label: 'Opportunities', chapter: 3, soon: true },
   { id: 'events', label: 'Events', chapter: 4 },
