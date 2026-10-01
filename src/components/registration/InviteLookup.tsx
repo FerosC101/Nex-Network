@@ -58,13 +58,13 @@ export function InviteLookup() {
   }
 
   return (
-    <div id="find-invite" ref={containerRef} className="mx-auto mt-6 max-w-xl scroll-mt-24">
+    <div id="find-invite" ref={containerRef} className="mt-6 scroll-mt-24">
       {!open ? (
         // Deliberately loud. The people who need this are the ones who already
         // registered, got nothing back, and have no reason to scroll a form
         // they have already filled in — a muted text link goes unread by
         // exactly the audience it is for.
-        <div className="rounded-2xl border border-brand/30 bg-brand/[0.07] p-5 shadow-[0_0_40px_-12px_rgba(92,214,215,0.25)] sm:p-6">
+        <div className="rounded-2xl border border-brand/30 bg-brand/[0.07] p-5 shadow-[0_0_40px_-12px_rgba(0,229,200,0.25)] sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand/15">
               <MailQuestion className="h-5 w-5 text-brand" aria-hidden="true" />
@@ -92,7 +92,7 @@ export function InviteLookup() {
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25, ease: 'easeOut' }}
-          className="rounded-2xl border border-line bg-base/60 p-6"
+          className="rounded-2xl border border-line bg-panel/60 p-6"
         >
           <h3 className="text-lg font-semibold text-ink">Find your invite</h3>
           <p className="mt-1.5 text-sm text-ink-3">

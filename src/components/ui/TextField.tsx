@@ -137,8 +137,8 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
           onChange={handleChange}
           aria-invalid={Boolean(error)}
           aria-describedby={[hintId, errorId].filter(Boolean).join(' ') || undefined}
-          className={`w-full rounded-xl border bg-surface px-4 py-3 text-base text-ink placeholder:text-ink-4 transition-colors duration-200 outline-none ${
-            error ? 'border-red-400/60 focus:border-red-400' : 'border-line focus:border-brand'
+          className={`w-full rounded-control border bg-surface px-4 py-3 text-base text-ink placeholder:text-ink-4 transition-colors duration-200 outline-none ${
+            error ? 'border-red-400/60 focus:border-red-400 focus:ring-3 focus:ring-red-400/15' : 'border-slate hover:border-ink-4/60 focus:border-brand focus:ring-3 focus:ring-brand/15'
           } ${className}`}
           {...rest}
         />

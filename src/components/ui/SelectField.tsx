@@ -106,9 +106,9 @@ export const SelectField = forwardRef<HTMLButtonElement, SelectFieldProps>(
             aria-describedby={errorId}
             aria-expanded={isOpen}
             role="combobox"
-            className={`flex w-full items-center justify-between rounded-xl border bg-surface px-4 py-3 text-base text-ink text-left transition-colors duration-200 outline-none ${
-              error ? 'border-red-400/60 focus:border-red-400' : 'border-line focus:border-brand'
-            } ${disabled ? 'cursor-not-allowed opacity-50 bg-base' : 'cursor-pointer'} ${className}`}
+            className={`flex w-full items-center justify-between rounded-control border bg-surface px-4 py-3 text-base text-ink text-left transition-colors duration-200 outline-none ${
+              error ? 'border-red-400/60 focus:border-red-400 focus:ring-3 focus:ring-red-400/15' : 'border-slate hover:border-ink-4/60 focus:border-brand focus:ring-3 focus:ring-brand/15'
+            } ${disabled ? 'cursor-not-allowed opacity-50 bg-panel' : 'cursor-pointer'} ${className}`}
           >
             <span className={value ? 'text-ink' : 'text-ink-4'}>{value || placeholder}</span>
             <ChevronDown

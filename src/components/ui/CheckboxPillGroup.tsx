@@ -57,7 +57,7 @@ export function CheckboxPillGroup({
               />
               <label
                 htmlFor={inputId}
-                className="block cursor-pointer rounded-full border border-line bg-surface px-4 py-2 text-sm text-ink-2 transition-all duration-150 select-none hover:border-brand/40 hover:text-ink peer-checked:border-brand peer-checked:bg-brand peer-checked:font-medium peer-checked:text-[#10171a] peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand"
+                className="block cursor-pointer rounded-control border border-slate bg-surface px-4 py-2 text-sm text-ink-2 transition-all duration-150 select-none hover:border-brand/40 hover:text-ink peer-checked:border-brand peer-checked:bg-brand peer-checked:font-medium peer-checked:text-on-brand peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand"
               >
                 {option}
               </label>

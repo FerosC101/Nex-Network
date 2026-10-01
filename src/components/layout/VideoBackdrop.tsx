@@ -93,15 +93,11 @@ export function VideoBackdrop() {
         />
       )}
 
-      {/* Legibility stack — shaped around the hero layout rather than a flat
-          scrim, so the film still reads. Heaviest on the left where the
-          headline and CTA sit, lighter across the right where it plays behind
-          the 3D mark, and fading to solid at top and bottom so the nav stays
-          readable and the section joins the next one cleanly. */}
-      <div className="absolute inset-0 bg-void/55 lg:bg-void/45" />
-      {/* The left-weighted pass is shaped for the desktop two-column layout;
-          on mobile the copy is centred, so an even scrim serves it better. */}
-      <div className="absolute inset-0 hidden bg-gradient-to-r from-void via-void/68 to-void/20 lg:block" />
+      {/* Legibility stack for the centred hero: an even dim, then a
+          vignette that darkens the edges and fades to solid at top and bottom
+          so the nav stays readable and the section joins the next cleanly. */}
+      <div className="absolute inset-0 bg-void/65" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_45%,transparent,var(--color-void))]" />
       <div className="absolute inset-0 bg-gradient-to-b from-void/80 via-transparent to-void" />
     </div>
   );

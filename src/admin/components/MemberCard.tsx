@@ -122,7 +122,7 @@ export function MemberCard({ member, onReview, onMarkInvited, onMarkAdded, busy 
             type="button"
             disabled={busy}
             onClick={() => onReview(member.id, 'approved', notes)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3.5 py-2 text-sm font-semibold text-[#10171a] transition-colors hover:bg-brand-soft disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3.5 py-2 text-sm font-semibold text-on-brand transition-colors hover:bg-brand-soft disabled:opacity-50"
           >
             {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
             Approve
@@ -178,7 +178,7 @@ export function MemberCard({ member, onReview, onMarkInvited, onMarkAdded, busy 
               type="button"
               disabled={busy}
               onClick={() => onMarkAdded(member.id)}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-[#10171a] transition-colors hover:bg-brand-soft disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-on-brand transition-colors hover:bg-brand-soft disabled:opacity-50"
             >
               {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserPlus className="h-3 w-3" />}
               Mark added to chat

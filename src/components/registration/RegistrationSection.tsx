@@ -16,6 +16,13 @@ import { BotTrap } from '@/components/registration/BotTrap';
 import { InviteLookup } from '@/components/registration/InviteLookup';
 import { useRegistrationForm } from '@/hooks/useRegistrationForm';
 
+// Mirrors the real review flow: nothing here promises an instant link.
+const JOIN_STEPS = [
+  { title: 'Register', body: 'Tell us who you are, what you study, and what you want to build.' },
+  { title: 'Get verified', body: 'A real person on the team checks you\'re a student in Batangas.' },
+  { title: 'Join the group chat', body: 'We email you, you send your Facebook profile, and we add you in.' },
+];
+
 const STEP_COMPONENTS = [
   StepBasicInfo,
   StepStudentInfo,
@@ -66,14 +73,31 @@ export function RegistrationSection() {
   }, [step]);
 
   return (
-    <Section id="register" className="bg-base/40">
-      <div className="mx-auto max-w-2xl text-center">
-        <p className="label-condensed text-brand text-sm">Registration</p>
-        <h2 className="mt-4 text-4xl font-semibold sm:text-5xl">Let's get to know you.</h2>
-        <p className="mt-4 text-ink-2">Tell us a little about yourself. It only takes a minute.</p>
+    <Section id="register" className="border-t border-line-soft bg-panel/40">
+      <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
+      {/* Intro stays in view beside the long form on desktop. */}
+      <div className="lg:sticky lg:top-28 lg:col-span-5 lg:self-start">
+        <p className="label-condensed text-xs text-brand">Join Nex</p>
+        <h2 className="mt-5 text-4xl text-balance sm:text-5xl">Let's get to know you.</h2>
+        <p className="mt-5 text-lg text-ink-2">Tell us a little about yourself. It only takes a minute.</p>
+
+        <ol className="mt-10 space-y-5">
+          {JOIN_STEPS.map((item, i) => (
+            <li key={item.title} className="flex gap-4">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control border border-slate bg-surface font-display text-xs font-bold text-brand">
+                {i + 1}
+              </span>
+              <div>
+                <p className="font-medium text-ink">{item.title}</p>
+                <p className="mt-0.5 text-sm text-ink-3">{item.body}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
       </div>
 
-      <div className="mx-auto mt-12 max-w-xl rounded-3xl border border-line bg-base p-6 shadow-[0_24px_90px_-24px_rgba(92,214,215,0.18)] sm:p-9">
+      <div className="min-w-0 lg:col-span-7">
+      <div className="rounded-panel border border-line bg-panel p-6 shadow-lift sm:p-9">
         {isSuccess ? (
           <SuccessScreen email={submittedEmail} />
         ) : (
@@ -173,6 +197,8 @@ export function RegistrationSection() {
       {/* Only while the form is still up: someone who just submitted has no
           invite to recover yet, and offering to find one would confuse. */}
       {!isSuccess && <InviteLookup />}
+      </div>
+      </div>
     </Section>
   );
 }

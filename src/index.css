@@ -1,45 +1,63 @@
 @import "tailwindcss";
 
 /*
- * Nex Network brand system.
+ * Nex Network design system.
  *
- * Palette and type are taken from the Nex brand sheet:
- *   #1b1a1f  brand dark
- *   #5cd6d7  brand light blue
- *   Capitana (Thin / Regular / Semibold) for text
+ * Colours and type follow the Nex brand board: deep navy surfaces, Nex Teal
+ * as the single accent, Montserrat for headings and Inter for body text.
+ * The logo art itself (the S mark, the condensed "nex" wordmark and the 3D
+ * renders in /public) is unchanged — only the interface around it moved.
  *
- * Capitana and the "Dimensions 3000" display face are both commercial
- * fonts with no web-licensed source here, so the closest free analogs
- * stand in: Hanken Grotesk for text (near-identical geometric-humanist
- * proportions, and it ships the 100/400/600 weights the sheet calls out)
- * and Big Shoulders Display for the condensed uppercase labels. The real
- * display face still shows up wherever it matters most — the logo and
- * wordmark art are the actual brand renders.
+ * Teal is an accent, not a theme: CTAs, active states, highlights, icons and
+ * key numbers. Everything else is navy, slate and soft white.
+ *
+ * Token names are kept from the previous system (brand, void, surface, ink…)
+ * so every existing component — the registration form, /admin — picks up the
+ * new palette without being rewritten.
  */
 
 @theme {
-  --font-sans: "Hanken Grotesk", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-display: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
-  --font-condensed: "Big Shoulders Display", "Hanken Grotesk", ui-sans-serif, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: "Montserrat", "Inter", ui-sans-serif, system-ui, sans-serif;
+  /* Small uppercase labels. Was a condensed face; now tracked Montserrat. */
+  --font-condensed: "Montserrat", "Inter", ui-sans-serif, sans-serif;
 
-  /* Brand */
-  --color-brand: #5cd6d7;
-  --color-brand-deep: #35b3b5;
-  --color-brand-soft: #8ee7e8;
+  /* Accent */
+  --color-brand: #00e5c8;       /* Nex Teal */
+  --color-brand-deep: #00b8a1;
+  --color-brand-soft: #35f2df;  /* Light Teal */
+  --color-on-brand: #04201c;    /* text on a teal fill */
 
-  /* Neutrals built around the brand dark #1b1a1f */
-  --color-void: #121116;
-  --color-base: #1b1a1f;
-  --color-surface: #232229;
-  --color-surface-2: #2b2a33;
-  --color-line: #34323d;
-  --color-line-soft: #2a2932;
+  /* Surfaces, darkest to lightest */
+  --color-void: #080f1a;        /* Deep Navy — page background */
+  --color-panel: #0c1522;
+  --color-surface: #101a27;     /* Dark Surface — cards, inputs */
+  --color-surface-2: #16212f;
+  --color-slate: #1e293b;       /* Slate — raised elements, borders */
+  --color-line: #1e293b;
+  --color-line-soft: #152030;
 
   /* Text */
-  --color-ink: #f5f4f8;
-  --color-ink-2: #bcb9c6;
-  --color-ink-3: #8b8794;
-  --color-ink-4: #5f5c68;
+  --color-ink: #f8fafc;         /* White — primary */
+  --color-ink-2: #cbd5e1;
+  --color-ink-3: #94a3b8;       /* Gray — secondary */
+  --color-ink-4: #7686a0;       /* metadata; kept above 4.5:1 on void */
+
+  /* Radius: controls are rounded but not pills; cards and panels step up. */
+  --radius-control: 0.75rem;
+  --radius-card: 1rem;
+  --radius-panel: 1.5rem;
+
+  /* Elevation */
+  --shadow-card: 0 1px 0 0 rgb(255 255 255 / 0.03) inset, 0 12px 32px -16px rgb(0 0 0 / 0.6);
+  --shadow-lift: 0 1px 0 0 rgb(255 255 255 / 0.05) inset, 0 24px 48px -20px rgb(0 0 0 / 0.7);
+  --shadow-glow: 0 0 0 1px rgb(0 229 200 / 0.35), 0 10px 40px -10px rgb(0 229 200 / 0.45);
+
+  /* Motion: 150–400ms, one easing curve for everything that enters. */
+  --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Layout */
+  --container-page: 76rem;
 
   --animate-drift: drift 14s ease-in-out infinite;
   --animate-drift-slow: drift 20s ease-in-out infinite;
@@ -48,6 +66,9 @@
   @keyframes drift {
     0%, 100% { transform: translate3d(0, 0, 0); }
     50% { transform: translate3d(14px, -22px, 0); }
+  }
+  @keyframes dash-flow {
+    to { stroke-dashoffset: -16; }
   }
   @keyframes breathe {
     0%, 100% { opacity: 0.45; }
@@ -76,8 +97,8 @@
 
   h1, h2, h3, h4 {
     font-family: var(--font-display);
-    letter-spacing: -0.025em;
-    font-weight: 600;
+    letter-spacing: -0.03em;
+    font-weight: 700;
   }
 
   fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
@@ -85,7 +106,7 @@
 
   ::selection {
     background: var(--color-brand);
-    color: #10161a;
+    color: var(--color-on-brand);
   }
 
   :focus-visible {
@@ -116,14 +137,15 @@
   .label-condensed {
     font-family: var(--font-condensed);
     text-transform: uppercase;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.16em;
     font-weight: 600;
   }
 
+  /* A faint engineering grid for hero and feature backdrops. */
   .grid-veil {
     background-image:
-      linear-gradient(to right, rgba(92, 214, 215, 0.05) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(92, 214, 215, 0.05) 1px, transparent 1px);
+      linear-gradient(to right, rgba(0, 229, 200, 0.045) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(0, 229, 200, 0.045) 1px, transparent 1px);
     background-size: 56px 56px;
   }
 }

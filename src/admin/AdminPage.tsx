@@ -168,7 +168,7 @@ export default function AdminPage() {
                 onClick={() => setTab(t.key)}
                 className={`rounded-full border px-3.5 py-1.5 text-sm transition-colors ${
                   tab === t.key
-                    ? 'border-brand bg-brand text-[#10171a] font-medium'
+                    ? 'border-brand bg-brand text-on-brand font-medium'
                     : 'border-line text-ink-2 hover:border-brand/40'
                 }`}
               >

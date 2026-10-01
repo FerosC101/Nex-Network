@@ -190,9 +190,9 @@ export const ComboboxField = forwardRef<HTMLInputElement, ComboboxFieldProps>(
             aria-expanded={isOpen}
             role="combobox"
             autoComplete="off"
-            className={`w-full rounded-xl border bg-surface px-4 py-3 pr-10 text-base text-ink placeholder:text-ink-4 transition-colors duration-200 outline-none ${
-              error ? 'border-red-400/60 focus:border-red-400' : 'border-line focus:border-brand'
-            } ${disabled ? 'cursor-not-allowed opacity-50 bg-base' : ''} ${className}`}
+            className={`w-full rounded-control border bg-surface px-4 py-3 pr-10 text-base text-ink placeholder:text-ink-4 transition-colors duration-200 outline-none ${
+              error ? 'border-red-400/60 focus:border-red-400 focus:ring-3 focus:ring-red-400/15' : 'border-slate hover:border-ink-4/60 focus:border-brand focus:ring-3 focus:ring-brand/15'
+            } ${disabled ? 'cursor-not-allowed opacity-50 bg-panel' : ''} ${className}`}
           />
 
           <div className="absolute top-1/2 right-3 flex -translate-y-1/2 items-center gap-1">

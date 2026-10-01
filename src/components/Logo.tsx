@@ -21,8 +21,8 @@ export function Logo({ className = '', size = 34, withWordmark = true }: LogoPro
         style={{ width: size, height: size }}
       />
       {withWordmark && (
-        <span className="text-lg font-semibold tracking-tight text-ink">
-          Nex<span className="text-brand"> Network</span>
+        <span className="font-display text-base font-bold tracking-tight text-ink">
+          Nex<span className="font-semibold text-ink-3"> Network</span>
         </span>
       )}
     </div>
