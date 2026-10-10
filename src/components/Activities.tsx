@@ -149,6 +149,7 @@ export function Activities() {
       id="events"
       screens={ACTIVITIES.length * 1.6 + 0.6}
       ariaLabel="Events"
+      steps={{ count: ACTIVITIES.length, start: START, end: END }}
       fallback={
         <div className="mx-auto max-w-page px-6 py-24">
           <p className="label-condensed text-xs text-brand">05 · Events</p>

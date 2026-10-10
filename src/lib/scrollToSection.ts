@@ -36,6 +36,10 @@ export function scrollToSection(id: string): boolean {
     window.scrollTo({ top: 0, behavior: 'instant' });
     return true;
   }
+  // "#event-2": the third event, at the point in the timeline where it's lit.
+  const step = /^#?event-(\d+)$/.exec(id);
+  if (step) return scrollToStep('events', Number(step[1]));
+
   const el = findSection(id);
   if (!el) return false;
 
@@ -43,6 +47,21 @@ export function scrollToSection(id: string): boolean {
   const far = Math.abs(top - window.scrollY) > window.innerHeight * 2;
   window.scrollTo({ top, behavior: far || prefersReducedMotion() ? 'instant' : 'smooth' });
   keepOnTarget(el, far ? 0 : 900);
+  return true;
+}
+
+/** Scrolls a stepped scene (see StickyTrack `steps`) to the middle of one step. */
+function scrollToStep(sectionId: string, index: number): boolean {
+  const el = document.getElementById(sectionId);
+  if (!el) return false;
+  const meta = el.dataset.steps?.split(',').map(Number);
+  // Not pinned (reduced motion): the section top is the best we can do.
+  if (!meta) return scrollToSection(sectionId);
+  const [count, start, end] = meta;
+  const i = Math.min(Math.max(index, 0), count - 1);
+  const range = el.offsetHeight - window.innerHeight;
+  const top = el.getBoundingClientRect().top + window.scrollY + range * (start + ((i + 0.5) / count) * (end - start));
+  window.scrollTo({ top, behavior: 'instant' });
   return true;
 }
 

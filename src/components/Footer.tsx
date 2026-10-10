@@ -11,7 +11,7 @@ const COLUMNS = [
     links: [
       { label: 'Community', href: '#community' },
       { label: 'Build', href: '#enables' },
-      { label: 'Opportunities (soon)', href: '#opportunities' },
+      { label: 'Opportunities', href: '#opportunities' },
       { label: 'Events', href: '#events' },
       { label: 'People', href: '#people' },
     ],

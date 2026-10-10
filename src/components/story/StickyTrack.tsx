@@ -14,6 +14,11 @@ interface StickyTrackProps {
   fallback?: ReactNode;
   className?: string;
   ariaLabel?: string;
+  /**
+   * For scenes that step through items (the Events timeline): how many, and
+   * the part of the track they share. Lets in-page links target one item.
+   */
+  steps?: { count: number; start: number; end: number };
 }
 
 // Shared, never-changing "fully played" progress for the reduced-motion path.
@@ -25,7 +30,7 @@ const DONE = motionValue(1);
  * Everything inside animates from that one MotionValue, so nothing re-renders
  * per frame.
  */
-export function StickyTrack({ id, screens, children, fallback, className = '', ariaLabel }: StickyTrackProps) {
+export function StickyTrack({ id, screens, children, fallback, className = '', ariaLabel, steps }: StickyTrackProps) {
   const ref = useRef<HTMLElement>(null);
   const reduce = useReducedMotion();
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] });
@@ -54,6 +59,7 @@ export function StickyTrack({ id, screens, children, fallback, className = '', a
       aria-label={ariaLabel}
       className={`relative ${className}`}
       style={{ height: `${screens * 100}svh` }}
+      data-steps={steps ? `${steps.count},${steps.start},${steps.end}` : undefined}
     >
       <div className="sticky top-0 h-svh overflow-hidden">{children(progress)}</div>
     </section>

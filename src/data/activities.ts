@@ -23,8 +23,8 @@ export interface Activity {
   podiumNote?: string;
 }
 
-// Oldest first, in the order the team asked for. New activities go at the end;
-// the row scrolls sideways once there are more than fit on screen.
+// Oldest first. New activities go at the end; the Events timeline and the
+// event count grow with this list.
 export const ACTIVITIES: Activity[] = [
   {
     title: 'AWS Student Community Day Mega Manila',
@@ -77,5 +77,24 @@ export const ACTIVITIES: Activity[] = [
       { place: '3rd', name: 'Jed Balita' },
     ],
     podiumNote: 'All three took home cash prizes.',
+  },
+  {
+    title: 'NASA Space Apps Challenge Mentoring Session',
+    date: 'October 10, 2026',
+    dateTime: '2026-10-10',
+    place: 'Online · Google Meet',
+    description:
+      'A members-only coaching session to prepare for the NASA Space Apps Challenge, with Helen Mary Labapo-Barrameda — a 2020 NASA Space Apps hackathon winner. 52 people joined the call.',
+    photos: [
+      {
+        src: '/activities/nasa-meet.jpg',
+        alt: 'The Google Meet call during the NASA Space Apps Challenge mentoring session, with 52 participants',
+      },
+      {
+        src: '/opportunities/nasa-space-apps-coach.jpg',
+        alt: 'The session poster introducing coach Helen Mary Labapo-Barrameda',
+        position: 'center 30%',
+      },
+    ],
   },
 ];
