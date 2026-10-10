@@ -39,10 +39,10 @@ export const OPPORTUNITIES: Opportunity[] = [
     location: 'Online · Google Meet',
     access: 'Members only',
     description:
-      'Coaching for the NASA Space Apps Challenge with Helen Mary Labapo-Barrameda — licensed geodetic engineer, 2020 NASA Space Apps hackathon winner, and IT and FinOps professional.',
+      'Coaching for the NASA Space Apps Challenge with Helen Mary Labao-Barrameda — licensed geodetic engineer, 2020 NASA Space Apps hackathon winner, and IT and FinOps professional.',
     poster: {
       src: '/opportunities/nasa-space-apps-coach.jpg',
-      alt: 'Poster: Meet our coach, Helen Mary Labapo-Barrameda — NASA Space Apps Challenge mentoring session, October 10, 2026, 9–10 PM via Google Meet, exclusive for community members',
+      alt: 'Poster: Meet our coach, Helen Mary Labao-Barrameda — NASA Space Apps Challenge mentoring session, October 10, 2026, 9–10 PM via Google Meet, exclusive for community members',
     },
     eventTitle: 'NASA Space Apps Challenge Mentoring Session',
   },

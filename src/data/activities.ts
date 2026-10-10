@@ -8,6 +8,11 @@ export interface Photo {
   alt: string;
   /** Where to anchor the crop, for photos whose faces sit near an edge. */
   position?: string;
+  /**
+   * Show the whole image instead of cropping it to fill the frame — for
+   * screenshots and other wide shots where the edges matter.
+   */
+  fit?: 'contain';
 }
 
 export interface Activity {
@@ -84,15 +89,16 @@ export const ACTIVITIES: Activity[] = [
     dateTime: '2026-10-10',
     place: 'Online · Google Meet',
     description:
-      'A members-only coaching session to prepare for the NASA Space Apps Challenge, with Helen Mary Labapo-Barrameda — a 2020 NASA Space Apps hackathon winner. 52 people joined the call.',
+      'A members-only coaching session to prepare for the NASA Space Apps Challenge, with Helen Mary Labao-Barrameda — a 2020 NASA Space Apps hackathon winner. 52 people joined the call.',
     photos: [
       {
         src: '/activities/nasa-meet.jpg',
         alt: 'The Google Meet call during the NASA Space Apps Challenge mentoring session, with 52 participants',
+        fit: 'contain',
       },
       {
         src: '/opportunities/nasa-space-apps-coach.jpg',
-        alt: 'The session poster introducing coach Helen Mary Labapo-Barrameda',
+        alt: 'The session poster introducing coach Helen Mary Labao-Barrameda',
         position: 'center 30%',
       },
     ],

@@ -127,7 +127,7 @@ function Scene({ progress }: { progress: MotionValue<number> }) {
               alt={photo.alt}
               decoding="async"
               style={photo.position ? { objectPosition: photo.position } : undefined}
-              className="h-full w-full object-cover"
+              className={`h-full w-full ${photo.fit === 'contain' ? 'bg-void object-contain' : 'object-cover'}`}
             />
           </motion.a>
         </AnimatePresence>
@@ -164,7 +164,7 @@ export function Activities() {
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   {a.photos.map((p) => (
-                    <img key={p.src} src={p.src} alt={p.alt} loading="lazy" className="aspect-square rounded-control object-cover" />
+                    <img key={p.src} src={p.src} alt={p.alt} loading="lazy" className={`aspect-square rounded-control ${p.fit === 'contain' ? 'bg-void object-contain' : 'object-cover'}`} />
                   ))}
                 </div>
               </li>
