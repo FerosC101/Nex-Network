@@ -1,5 +1,5 @@
 import { motion, useTransform, type MotionValue } from 'framer-motion';
-import { ArrowRight, Clock, MapPin, Users } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Clock, MapPin, Users } from 'lucide-react';
 import { StickyTrack } from '@/components/story/StickyTrack';
 import { Badge } from '@/components/ui/Badge';
 import { buttonClasses } from '@/components/ui/buttonStyles';
@@ -40,10 +40,21 @@ function Find({ progress, i }: { progress: MotionValue<number>; i: number }) {
 
 
 /**
- * One real opportunity: the poster, then the facts — the date first and big,
- * since it decides whether you can still go.
+ * Upcoming first (soonest first), then completed (most recent first) — what
+ * you can still go to matters more than what already happened.
  */
-function OpportunityCard({ o }: { o: Opportunity }) {
+function ordered(list: Opportunity[]) {
+  const upcoming = list.filter((o) => !isPast(o)).sort((a, b) => a.dateTime.localeCompare(b.dateTime));
+  const done = list.filter((o) => isPast(o)).sort((a, b) => b.dateTime.localeCompare(a.dateTime));
+  return [...upcoming, ...done];
+}
+
+/**
+ * One real opportunity: the poster, then the facts — the date first and big,
+ * since it decides whether you can still go. `compact` is for when two share
+ * the pinned screen.
+ */
+function OpportunityCard({ o, compact = false }: { o: Opportunity; compact?: boolean }) {
   const past = isPast(o);
   const eventIndex = o.eventTitle ? ACTIVITIES.findIndex((a) => a.title === o.eventTitle) : -1;
   const d = new Date(`${o.dateTime}T00:00:00`);
@@ -58,7 +69,7 @@ function OpportunityCard({ o }: { o: Opportunity }) {
           rel="noopener noreferrer"
           data-cursor="view"
           aria-label={`${o.poster.alt} — open full size`}
-          className="group block w-24 shrink-0 self-start overflow-hidden rounded-card border border-line sm:w-[min(15rem,30svh)]"
+          className={`group block w-24 shrink-0 self-start overflow-hidden rounded-card border border-line ${compact ? 'sm:w-[min(10rem,19svh)]' : 'sm:w-[min(15rem,30svh)]'}`}
         >
           <img
             src={o.poster.src}
@@ -73,7 +84,7 @@ function OpportunityCard({ o }: { o: Opportunity }) {
           <Badge tone="neutral">{o.category}</Badge>
           {past ? <Badge tone="neutral">Completed</Badge> : <Badge>Upcoming</Badge>}
         </div>
-        <h3 className="mt-3 text-lg leading-snug font-bold text-ink sm:text-2xl">{o.title}</h3>
+        <h3 className={`mt-3 text-lg leading-snug font-bold text-ink ${compact ? 'sm:text-xl' : 'sm:text-2xl'}`}>{o.title}</h3>
         <p className="mt-1 text-xs text-ink-3 sm:text-sm">{o.organizer}</p>
 
         <div className="mt-4 flex items-center gap-4">
@@ -106,15 +117,29 @@ function OpportunityCard({ o }: { o: Opportunity }) {
           </ul>
         </div>
 
-        <p className="mt-4 hidden text-sm leading-relaxed text-ink-3 sm:block">{o.description}</p>
+        <p className={`mt-4 hidden text-sm leading-relaxed text-ink-3 ${compact ? 'sm:line-clamp-2' : 'sm:block'}`}>{o.description}</p>
 
-        <a
-          href={past && eventIndex >= 0 ? `#event-${eventIndex}` : '#register'}
-          className="group mt-4 inline-flex items-center gap-1.5 self-start text-sm font-semibold text-brand sm:mt-auto sm:pt-4"
-        >
-          {past && eventIndex >= 0 ? 'See how it went' : 'Join Nex to take part'}
-          <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true" />
-        </a>
+        {/* Upcoming with a sign-up form: register. Done: see the event.
+            Upcoming without one: join Nex to hear how. */}
+        {!past && o.registerUrl ? (
+          <a
+            href={o.registerUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`${buttonClasses('primary')} group mt-4 self-start !py-2 sm:mt-auto`}
+          >
+            Register
+            <ArrowUpRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" aria-hidden="true" />
+          </a>
+        ) : past && eventIndex < 0 ? null : (
+          <a
+            href={past ? `#event-${eventIndex}` : '#register'}
+            className="group mt-4 inline-flex items-center gap-1.5 self-start text-sm font-semibold text-brand sm:mt-auto sm:pt-4"
+          >
+            {past ? 'See how it went' : 'Join Nex to take part'}
+            <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true" />
+          </a>
+        )}
       </div>
     </article>
   );
@@ -143,7 +168,7 @@ function Scene({ progress }: { progress: MotionValue<number> }) {
         What's next?
       </motion.h2>
 
-      {/* The answer to "What's next?": the real opportunities, latest first. */}
+      {/* The answer to "What's next?": the real opportunities, upcoming first. */}
       <motion.div
         style={{ opacity: endOpacity, y: endY, pointerEvents: endPointer }}
         className="absolute inset-0 mx-auto flex w-full max-w-page flex-col justify-center gap-6 px-6 pt-16 lg:flex-row lg:items-center lg:gap-14"
@@ -153,15 +178,18 @@ function Scene({ progress }: { progress: MotionValue<number> }) {
           <h2 className="mt-4 text-[clamp(1.9rem,4.2vw,3.5rem)] leading-[1.05] font-extrabold tracking-[-0.03em] text-balance">
             Opportunities, found together.
           </h2>
-          <p className="mt-4 max-w-md text-ink-2">
+          {/* Phones need the room for the cards, which say the same thing. */}
+          <p className="mt-4 hidden max-w-md text-ink-2 sm:block">
             Hackathons, competitions, internships, scholarships, and the people to prepare with. The full
             board is coming — here's the latest.
           </p>
         </div>
         <div className="flex flex-col gap-4 lg:flex-1">
-          {OPPORTUNITIES.slice(0, 1).map((o) => (
-            <OpportunityCard key={o.title} o={o} />
-          ))}
+          {ordered(OPPORTUNITIES)
+            .slice(0, 2)
+            .map((o, _, shown) => (
+              <OpportunityCard key={o.title} o={o} compact={shown.length > 1} />
+            ))}
         </div>
       </motion.div>
     </div>
@@ -183,7 +211,7 @@ export function ComingSoon() {
             {FINDS.map((f) => f.label).join(', ')} — and the people to prepare with. The full board is coming.
           </p>
           <div className="mt-10 flex max-w-3xl flex-col gap-4">
-            {OPPORTUNITIES.map((o) => (
+            {ordered(OPPORTUNITIES).map((o) => (
               <OpportunityCard key={o.title} o={o} />
             ))}
           </div>

@@ -24,11 +24,28 @@ export interface Opportunity {
   access?: string;
   description: string;
   poster?: { src: string; alt: string };
+  /** Where to sign up, e.g. the registration form behind the poster's QR code. */
+  registerUrl?: string;
   /** The matching entry in Events, once it has happened. */
   eventTitle?: string;
 }
 
 export const OPPORTUNITIES: Opportunity[] = [
+  {
+    title: 'From Idea to Impact: Ideation & Pitching',
+    organizer: 'Nex Network',
+    category: 'Workshop',
+    dateTime: '2026-11-07',
+    time: '9:00 PM',
+    location: 'Online · Google Meet',
+    description:
+      'Find the problem, build the solution, and pitch it with confidence — whether you have a fresh idea or want to pitch it better. With Vince Anjo R. Villar (Team Nex Project Leader) and Aila Roshiele C. Donayre (Team Nex Pitch Lead).',
+    poster: {
+      src: '/opportunities/ideation-pitching.jpg',
+      alt: 'Poster: From Idea to Impact — Ideation & Pitching workshop with Vince Anjo R. Villar and Aila Roshiele C. Donayre, Saturday, November 7, 2026, 9:00 PM via Google Meet',
+    },
+    registerUrl: 'https://forms.gle/6CagGut2guALnz4F8',
+  },
   {
     title: 'NASA Space Apps Challenge Mentoring Session',
     organizer: 'NASA Space Apps Challenge × Nex Network',
